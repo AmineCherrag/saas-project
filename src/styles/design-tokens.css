@@ -1,0 +1,186 @@
+/* TradePulse Institutional Design System Tokens */
+
+:root {
+  /* Common Spacing Scale */
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1.0rem;   /* 16px */
+  --space-5: 1.25rem;  /* 20px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2.0rem;   /* 32px */
+  --space-10: 2.5rem;  /* 40px */
+  --space-12: 3.0rem;  /* 48px */
+
+  /* Border Radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-full: 9999px;
+
+  /* Typography */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Elevation Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-glow-profit: 0 0 15px rgba(16, 185, 129, 0.25);
+  --shadow-glow-loss: 0 0 15px rgba(239, 68, 68, 0.25);
+  /* Spacing Scale Aliases */
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1.0rem;
+  --spacing-5: 1.25rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2.0rem;
+  --spacing-10: 2.5rem;
+  --spacing-12: 3.0rem;
+  --spacing-16: 4.0rem;
+  --spacing-20: 5.0rem;
+
+  /* Additional Radii */
+  --radius-2xl: 1.5rem;
+
+  /* Typography Scales */
+  --font-family-sans: var(--font-sans);
+  --font-family-mono: var(--font-mono);
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+
+  /* Additional Elevation */
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+}
+
+/* Dark Mode (Default Institutional Obsidian) */
+:root,
+[data-theme="dark"] {
+  --bg-app: #0B0E14;              /* Deep obsidian base */
+  --bg-surface: #121824;          /* Elevated card surface */
+  --bg-surface-hover: #162030;    /* Card hover */
+  --bg-surface-elevated: #182236; /* Modals, dropdowns, popovers */
+  --bg-surface-subtle: #1C273C;   /* Input backgrounds, table headers */
+
+  /* Borders */
+  --border-subtle: #1E293B;       /* Default border */
+  --border-muted: #2E3E56;        /* Subtle divider */
+  --border-hover: #3E5170;        /* Hover border */
+  --border-focus: #6366F1;        /* Focus ring */
+
+  /* Text Colors */
+  --text-primary: #F8FAFC;        /* High-contrast headings and active numbers */
+  --text-secondary: #94A3B8;      /* Supporting text and subtitles */
+  --text-muted: #64748B;          /* Dim labels, timestamps, placeholders */
+  --text-disabled: #475569;
+
+  /* Brand Accents */
+  --accent-primary: #6366F1;      /* Electric Indigo */
+  --accent-primary-hover: #4F46E5;
+  --accent-primary-subtle: rgba(99, 102, 241, 0.15);
+  --accent-secondary: #06B6D4;    /* Cyber Cyan */
+  --accent-secondary-subtle: rgba(6, 182, 212, 0.15);
+
+  /* Financial Indicators */
+  --color-profit: #10B981;        /* Luminous Emerald */
+  --color-profit-subtle: rgba(16, 185, 129, 0.12);
+  --color-profit-border: rgba(16, 185, 129, 0.3);
+
+  --color-loss: #EF4444;          /* Crimson Coral */
+  --color-loss-subtle: rgba(239, 68, 68, 0.12);
+  --color-loss-border: rgba(239, 68, 68, 0.3);
+
+  --color-warning: #F59E0B;       /* Amber */
+  --color-warning-subtle: rgba(245, 158, 11, 0.12);
+  --color-warning-border: rgba(245, 158, 11, 0.3);
+
+  --color-info: #38BDF8;          /* Sky Blue */
+  --color-info-subtle: rgba(56, 189, 248, 0.12);
+  --color-info-border: rgba(56, 189, 248, 0.3);
+
+  --scrollbar-thumb: #1E293B;
+  --scrollbar-track: #0B0E14;
+
+  /* Color Aliases */
+  --color-background: #0B0E14;
+  --color-surface: #121824;
+  --color-border: #1E293B;
+  --color-text-primary: #F8FAFC;
+  --color-text-secondary: #94A3B8;
+  --color-text-muted: #64748B;
+  --color-primary-400: #818CF8;
+  --color-primary-500: #6366F1;
+  --color-primary-600: #4F46E5;
+  --brand-emerald: #10B981;
+  --brand-crimson: #EF4444;
+}
+
+/* High-Contrast Light Mode */
+[data-theme="light"] {
+  --bg-app: #F8FAFC;
+  --bg-surface: #FFFFFF;
+  --bg-surface-hover: #F1F5F9;
+  --bg-surface-elevated: #FFFFFF;
+  --bg-surface-subtle: #F1F5F9;
+
+  --border-subtle: #E2E8F0;
+  --border-muted: #CBD5E1;
+  --border-hover: #94A3B8;
+  --border-focus: #4F46E5;
+
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  --text-disabled: #CBD5E1;
+
+  --accent-primary: #4F46E5;
+  --accent-primary-hover: #4338CA;
+  --accent-primary-subtle: rgba(79, 70, 229, 0.1);
+  --accent-secondary: #0891B2;
+  --accent-secondary-subtle: rgba(8, 145, 178, 0.1);
+
+  --color-profit: #059669;
+  --color-profit-subtle: #ECFDF5;
+  --color-profit-border: #A7F3D0;
+
+  --color-loss: #DC2626;
+  --color-loss-subtle: #FEF2F2;
+  --color-loss-border: #FECACA;
+
+  --color-warning: #D97706;
+  --color-warning-subtle: #FFFBEB;
+  --color-warning-border: #FDE68A;
+
+  --color-info: #0284C7;
+  --color-info-subtle: #F0F9FF;
+  --color-info-border: #BAE6FD;
+
+  --scrollbar-thumb: #CBD5E1;
+  --scrollbar-track: #F8FAFC;
+
+  /* Color Aliases */
+  --color-background: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-border: #E2E8F0;
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94A3B8;
+  --color-primary-400: #6366F1;
+  --color-primary-500: #4F46E5;
+  --color-primary-600: #4338CA;
+  --brand-emerald: #059669;
+  --brand-crimson: #DC2626;
+}

@@ -1,0 +1,462 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import styles from "./TradeDetail.module.css";
+import { AppShell } from "@/components/layout/AppShell";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import {
+  TrendingUp,
+  TrendingDown,
+  ArrowLeft,
+  Calendar,
+  Clock,
+  DollarSign,
+  Award,
+  Layers,
+  FileText,
+  Image as ImageIcon,
+  Tag,
+  Star,
+  Activity,
+  Edit2,
+  Trash2,
+} from "lucide-react";
+import { Trade } from "@/types";
+
+export default function TradeDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const tradeId = params.id as string;
+
+  // Mock trade detail for demonstration & verification
+  const [trade, setTrade] = useState<Trade>({
+    id: tradeId || "trd_01",
+    userId: "usr_alex",
+    accountId: "acc_101",
+    accountName: "Apex 50k #1 (Tradovate)",
+    symbol: "NQ (E-mini Nasdaq 100)",
+    assetClass: "FUTURES",
+    direction: "LONG",
+    status: "CLOSED",
+    entryTime: "2026-10-12 14:32:15",
+    exitTime: "2026-10-12 14:48:30",
+    entryPrice: 18250.25,
+    exitPrice: 18275.5,
+    quantity: 2,
+    contractMultiplier: 20.0,
+    stopLoss: 18230.0,
+    takeProfit: 18290.0,
+    initialRisk: 810.0, // (18250.25 - 18230.00) * 2 * 20 = $810.00
+    grossPnl: 1010.0, // (18275.50 - 18250.25) * 2 * 20 = $1,010.00
+    fees: 12.5,
+    commissions: 6.0,
+    netPnl: 991.5,
+    returnPct: 1.36,
+    rMultiple: 1.22,
+    rating: 5,
+    marketSession: "NY Open (09:30 - 11:30 AM)",
+    playbookName: "NY Open Breakout",
+    notes:
+      "Clean liquidity sweep of Asian session high during early NY open. Waited for 5-minute displacement candle to close above resistance before executing long. Trailed stop loss beneath previous 5m swing low until target hit.",
+    tags: [
+      { id: "t1", tradeId: "trd_01", tagType: "SETUP", tagValue: "Liquidity Sweep" },
+      { id: "t2", tradeId: "trd_01", tagType: "SETUP", tagValue: "5m Displacement" },
+      { id: "t3", tradeId: "trd_01", tagType: "CUSTOM", tagValue: "Followed Plan" },
+    ],
+    executions: [
+      {
+        id: "fill_01",
+        tradeId: "trd_01",
+        executionType: "ENTRY",
+        orderAction: "BUY",
+        timestamp: "2026-10-12 14:32:15",
+        price: 18250.25,
+        quantity: 2,
+        fees: 9.25,
+        notes: "Market order fill",
+      },
+      {
+        id: "fill_02",
+        tradeId: "trd_01",
+        executionType: "EXIT",
+        orderAction: "SELL",
+        timestamp: "2026-10-12 14:48:30",
+        price: 18275.5,
+        quantity: 2,
+        fees: 9.25,
+        notes: "Limit take-profit fill",
+      },
+    ],
+    createdAt: "2026-10-12",
+  });
+
+  const isProfitable = trade.netPnl >= 0;
+
+  return (
+    <AppShell>
+      <div className={styles.container}>
+        {/* Top Navigation Row */}
+        <div className={styles.navRow}>
+          <Button
+            variant="ghost"
+            size="sm"
+            leftIcon={<ArrowLeft size={16} />}
+            onClick={() => router.push("/trades")}
+          >
+            Back to Trades Log
+          </Button>
+
+          <div className={styles.topActions}>
+            <Button
+              variant="outline"
+              size="sm"
+              leftIcon={<Edit2 size={14} />}
+              onClick={() => alert("Edit trade details modal trigger")}
+            >
+              Edit Trade
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              leftIcon={<Trash2 size={14} />}
+              onClick={() => {
+                if (confirm("Delete this trade?")) router.push("/trades");
+              }}
+            >
+              Delete
+            </Button>
+          </div>
+        </div>
+
+        {/* Trade Identity Header Card */}
+        <section className={styles.headerCard}>
+          <div className={styles.headerLeft}>
+            <div className={styles.tickerPill}>
+              <h1 className={styles.symbolTitle}>{trade.symbol}</h1>
+              <Badge
+                variant={trade.direction === "LONG" ? "profit" : "loss"}
+                size="md"
+              >
+                {trade.direction}
+              </Badge>
+              <Badge variant="primary" size="md">
+                {trade.assetClass}
+              </Badge>
+            </div>
+
+            <div className={styles.metaRow}>
+              <span>
+                <Clock size={13} /> {trade.entryTime} → {trade.exitTime}
+              </span>
+              <span>•</span>
+              <span>Account: {trade.accountName}</span>
+              <span>•</span>
+              <span>Session: {trade.marketSession}</span>
+            </div>
+          </div>
+
+          <div className={styles.headerRight}>
+            <div className={styles.pnlDisplay}>
+              <span className={styles.pnlLabel}>Net Realized P&L</span>
+              <div
+                className={isProfitable ? styles.pnlValueProfit : styles.pnlValueLoss}
+              >
+                {isProfitable ? "+" : ""}$
+                {trade.netPnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              </div>
+            </div>
+
+            <div className={styles.rDisplay}>
+              <span className={styles.pnlLabel}>R-Multiple</span>
+              <div className={styles.rValue}>
+                {trade.rMultiple ? `+${trade.rMultiple} R` : "—"}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Dual-Pane Core Grid */}
+        <div className={styles.dualPaneGrid}>
+          {/* ================= LEFT SECTION: METRICS & EXECUTIONS ================= */}
+          <div className={styles.leftSection}>
+            {/* 1. Quantitative Statistics Grid */}
+            <div className={styles.sectionCard}>
+              <h3 className={styles.cardHeaderTitle}>Trade Statistics</h3>
+
+              <div className={styles.statsGrid}>
+                <div className={styles.statBox}>
+                  <span className={styles.statLabel}>Gross P&L</span>
+                  <span
+                    className={
+                      trade.grossPnl >= 0 ? styles.statProfit : styles.statLoss
+                    }
+                  >
+                    +${trade.grossPnl.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className={styles.statBox}>
+                  <span className={styles.statLabel}>Fees & Comm</span>
+                  <span className={styles.statDim}>
+                    -${(trade.fees + trade.commissions).toFixed(2)}
+                  </span>
+                </div>
+
+                <div className={styles.statBox}>
+                  <span className={styles.statLabel}>Initial Risk</span>
+                  <span className={styles.statNeutral}>
+                    ${trade.initialRisk ? trade.initialRisk.toFixed(2) : "—"}
+                  </span>
+                </div>
+
+                <div className={styles.statBox}>
+                  <span className={styles.statLabel}>Return %</span>
+                  <span className={styles.statProfit}>
+                    +{trade.returnPct}%
+                  </span>
+                </div>
+
+                <div className={styles.statBox}>
+                  <span className={styles.statLabel}>Entry Price</span>
+                  <span className={styles.statNeutral}>
+                    ${trade.entryPrice.toLocaleString("en-US")}
+                  </span>
+                </div>
+
+                <div className={styles.statBox}>
+                  <span className={styles.statLabel}>Exit Price</span>
+                  <span className={styles.statNeutral}>
+                    ${trade.exitPrice?.toLocaleString("en-US")}
+                  </span>
+                </div>
+
+                <div className={styles.statBox}>
+                  <span className={styles.statLabel}>Stop-Loss</span>
+                  <span className={styles.statLoss}>
+                    ${trade.stopLoss?.toLocaleString("en-US") || "—"}
+                  </span>
+                </div>
+
+                <div className={styles.statBox}>
+                  <span className={styles.statLabel}>Take-Profit</span>
+                  <span className={styles.statProfit}>
+                    ${trade.takeProfit?.toLocaleString("en-US") || "—"}
+                  </span>
+                </div>
+
+                <div className={styles.statBox}>
+                  <span className={styles.statLabel}>Quantity</span>
+                  <span className={styles.statNeutral}>{trade.quantity} contracts</span>
+                </div>
+
+                <div className={styles.statBox}>
+                  <span className={styles.statLabel}>Point Value</span>
+                  <span className={styles.statNeutral}>
+                    ${trade.contractMultiplier}/pt
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Position Executions Fills */}
+            <div className={styles.sectionCard}>
+              <h3 className={styles.cardHeaderTitle}>Fills & Order Executions</h3>
+
+              <div className={styles.fillsTableWrapper}>
+                <table className={styles.fillsTable}>
+                  <thead>
+                    <tr>
+                      <th>Fill Type</th>
+                      <th>Action</th>
+                      <th>Time</th>
+                      <th style={{ textAlign: "right" }}>Price</th>
+                      <th style={{ textAlign: "right" }}>Qty</th>
+                      <th style={{ textAlign: "right" }}>Fees</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {trade.executions?.map((fill) => (
+                      <tr key={fill.id}>
+                        <td>
+                          <Badge
+                            variant={fill.executionType === "ENTRY" ? "primary" : "neutral"}
+                            size="sm"
+                          >
+                            {fill.executionType}
+                          </Badge>
+                        </td>
+                        <td>
+                          <span
+                            className={
+                              fill.orderAction === "BUY"
+                                ? styles.fillBuy
+                                : styles.fillSell
+                            }
+                          >
+                            {fill.orderAction}
+                          </span>
+                        </td>
+                        <td className={styles.fontMono}>{fill.timestamp}</td>
+                        <td className={styles.alignRight}>
+                          ${fill.price.toLocaleString("en-US")}
+                        </td>
+                        <td className={styles.alignRight}>{fill.quantity}</td>
+                        <td className={styles.alignRight}>${fill.fees.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* 3. Tags & Rating */}
+            <div className={styles.sectionCard}>
+              <div className={styles.tagsHeader}>
+                <h3 className={styles.cardHeaderTitle}>Setup Strategy & Rating</h3>
+                <div className={styles.stars}>
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <span
+                      key={s}
+                      className={s <= (trade.rating || 3) ? styles.starOn : styles.starOff}
+                    >
+                      ★
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className={styles.tagsContainer}>
+                {trade.playbookName && (
+                  <Badge variant="primary" size="md">
+                    Playbook: {trade.playbookName}
+                  </Badge>
+                )}
+                {trade.tags?.map((t) => (
+                  <Badge
+                    key={t.id}
+                    variant={t.tagType === "MISTAKE" ? "loss" : "neutral"}
+                    size="md"
+                  >
+                    {t.tagValue}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* ================= RIGHT SECTION: CHART & NOTES ================= */}
+          <div className={styles.rightSection}>
+            {/* 1. Candlestick Visualization with Markers */}
+            <div className={styles.sectionCard}>
+              <div className={styles.chartHeader}>
+                <div className={styles.chartTitleWrapper}>
+                  <Activity size={18} className={styles.chartIcon} />
+                  <span className={styles.cardHeaderTitle}>Chart Execution Replay</span>
+                </div>
+                <div className={styles.markerLegend}>
+                  <span className={styles.markerEntry}>▲ Entry: $18,250.25</span>
+                  <span className={styles.markerExit}>▼ Exit: $18,275.50</span>
+                </div>
+              </div>
+
+              {/* Simulated Candlestick Canvas View */}
+              <div className={styles.candlestickCanvas}>
+                <div className={styles.simulatedChart}>
+                  {/* Candlesticks visualization bars */}
+                  <div className={styles.candleBar} style={{ height: "45%" }}>
+                    <div className={styles.wick} />
+                    <div className={`${styles.body} ${styles.candleGreen}`} />
+                  </div>
+                  <div className={styles.candleBar} style={{ height: "35%" }}>
+                    <div className={styles.wick} />
+                    <div className={`${styles.body} ${styles.candleRed}`} />
+                  </div>
+                  <div className={styles.candleBar} style={{ height: "55%" }}>
+                    <div className={styles.wick} />
+                    <div className={`${styles.body} ${styles.candleGreen}`} />
+                  </div>
+                  <div
+                    className={`${styles.candleBar} ${styles.entryCandle}`}
+                    style={{ height: "70%" }}
+                  >
+                    <div className={styles.markerEntryPin}>▲ ENTRY (2 NQ)</div>
+                    <div className={styles.wick} />
+                    <div className={`${styles.body} ${styles.candleGreen}`} />
+                  </div>
+                  <div className={styles.candleBar} style={{ height: "80%" }}>
+                    <div className={styles.wick} />
+                    <div className={`${styles.body} ${styles.candleGreen}`} />
+                  </div>
+                  <div
+                    className={`${styles.candleBar} ${styles.exitCandle}`}
+                    style={{ height: "90%" }}
+                  >
+                    <div className={styles.markerExitPin}>▼ EXIT (+$991.50)</div>
+                    <div className={styles.wick} />
+                    <div className={`${styles.body} ${styles.candleGreen}`} />
+                  </div>
+                  <div className={styles.candleBar} style={{ height: "75%" }}>
+                    <div className={styles.wick} />
+                    <div className={`${styles.body} ${styles.candleRed}`} />
+                  </div>
+                </div>
+
+                <div className={styles.chartPriceAxis}>
+                  <span>18,290.00 (Target)</span>
+                  <span className={styles.axisExit}>18,275.50 (Exit)</span>
+                  <span className={styles.axisEntry}>18,250.25 (Entry)</span>
+                  <span className={styles.axisStop}>18,230.00 (Stop)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Running P&L Curve */}
+            <div className={styles.sectionCard}>
+              <h3 className={styles.cardHeaderTitle}>Running Trade Realized P&L</h3>
+              <div className={styles.runningPnlProgress}>
+                <div className={styles.runningPnlBar} style={{ width: "100%" }}>
+                  <span>+$991.50 (+1.22 R Target Hit)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Trade Notes & Psychology Reflection */}
+            <div className={styles.sectionCard}>
+              <div className={styles.notesHeader}>
+                <FileText size={18} className={styles.cardIcon} />
+                <h3 className={styles.cardHeaderTitle}>Execution Thesis & Day Notes</h3>
+              </div>
+              <div className={styles.notesContent}>
+                <p>{trade.notes}</p>
+              </div>
+            </div>
+
+            {/* 4. Chart Screenshots & Attachments */}
+            <div className={styles.sectionCard}>
+              <div className={styles.notesHeader}>
+                <ImageIcon size={18} className={styles.cardIcon} />
+                <h3 className={styles.cardHeaderTitle}>Chart Screenshots & Files</h3>
+              </div>
+              <div className={styles.attachmentsGrid}>
+                <div className={styles.attachmentThumbnail}>
+                  <div className={styles.thumbPlaceholder}>
+                    <Activity size={24} color="var(--accent-primary)" />
+                    <span>5-Min Setup Trigger.png</span>
+                  </div>
+                </div>
+                <div className={styles.attachmentThumbnail}>
+                  <div className={styles.thumbPlaceholder}>
+                    <Calendar size={24} color="var(--accent-secondary)" />
+                    <span>Daily Order Flow Context.png</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </AppShell>
+  );
+}

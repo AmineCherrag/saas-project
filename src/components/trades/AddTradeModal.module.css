@@ -1,0 +1,235 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.errorAlert {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background-color: var(--color-loss-subtle);
+  border: 1px solid var(--color-loss-border);
+  color: var(--color-loss);
+  font-size: 13px;
+}
+
+.topControlRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.accountSelector {
+  flex: 1;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.fieldLabel {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.styledSelect {
+  height: 40px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-subtle);
+  color: var(--text-primary);
+  padding: 0 var(--space-3);
+  font-size: 13.5px;
+  outline: none;
+}
+
+.toggleGroup {
+  display: flex;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface-subtle);
+  border: 1px solid var(--border-subtle);
+  padding: 2px;
+  height: 40px;
+}
+
+.dirBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: all var(--transition-fast);
+}
+
+.activeLong {
+  background-color: var(--color-profit);
+  color: #ffffff !important;
+  box-shadow: var(--shadow-glow-profit);
+}
+
+.activeShort {
+  background-color: var(--color-loss);
+  color: #ffffff !important;
+  box-shadow: var(--shadow-glow-loss);
+}
+
+.statusBtn {
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: all var(--transition-fast);
+}
+
+.activeStatus {
+  background-color: var(--accent-primary);
+  color: #ffffff !important;
+}
+
+/* Grids */
+.gridRow3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+
+.gridRow4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+}
+
+/* Calculation Preview Box */
+.calcPreviewBox {
+  background: linear-gradient(
+    135deg,
+    rgba(24, 34, 54, 0.95) 0%,
+    rgba(18, 24, 36, 0.98) 100%
+  );
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-sm);
+}
+
+.calcHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--accent-primary);
+  margin-bottom: var(--space-3);
+}
+
+.calcGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--space-3);
+}
+
+.calcStat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.calcStatLabel {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.calcProfit {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-profit);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.calcLoss {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-loss);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.calcNeutral {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Star Rating */
+.starRating {
+  display: flex;
+  gap: 2px;
+  height: 40px;
+  align-items: center;
+}
+
+.starBtn {
+  font-size: 22px;
+  color: var(--text-muted);
+  transition: color var(--transition-fast);
+  padding: 0 2px;
+}
+
+.starBtn:hover,
+.starActive {
+  color: #f59e0b;
+}
+
+/* Textarea */
+.textareaWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.textarea {
+  width: 100%;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-subtle);
+  color: var(--text-primary);
+  font-size: 13.5px;
+  resize: vertical;
+  outline: none;
+  font-family: inherit;
+}
+
+.textarea:focus {
+  border-color: var(--border-focus);
+}
+
+@media (max-width: 768px) {
+  .gridRow3 {
+    grid-template-columns: 1fr;
+  }
+  .gridRow4 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .calcGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

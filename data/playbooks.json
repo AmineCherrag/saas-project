@@ -1,0 +1,14 @@
+[
+  {
+    "id": "pb_1791855017316_ld3cm",
+    "userId": "usr_p8_a_1791855017292_7tf0",
+    "name": "User A Secret Strategy",
+    "setupRules": "Rules",
+    "entryCriteria": "Defined in setup rules",
+    "exitCriteria": "Defined in risk rules",
+    "riskRules": "Standard risk parameters",
+    "winRate": 0,
+    "tradeCount": 0,
+    "createdAt": "2026-10-13T01:30:17.316Z"
+  }
+]

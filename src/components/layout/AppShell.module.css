@@ -1,0 +1,34 @@
+.appShell {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background-color: var(--bg-app);
+}
+
+.mainContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.contentWorkspace {
+  flex: 1;
+  overflow-y: auto;
+  background-color: var(--bg-app);
+}
+
+.contentInner {
+  padding: var(--space-6);
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .contentInner {
+    padding: var(--space-4);
+  }
+}
