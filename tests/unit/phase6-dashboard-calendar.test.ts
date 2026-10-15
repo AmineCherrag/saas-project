@@ -23,7 +23,10 @@ describe("Phase 6: Executive Dashboard & Interactive Performance Calendar", () =
       baseCurrency: "USD",
       timezone: "America/New_York",
       emailVerified: true,
+      twoFactorEnabled: false,
+      isSuspended: false,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
     userAId = userA.id;
 
@@ -38,7 +41,10 @@ describe("Phase 6: Executive Dashboard & Interactive Performance Calendar", () =
       baseCurrency: "USD",
       timezone: "America/New_York",
       emailVerified: true,
+      twoFactorEnabled: false,
+      isSuspended: false,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
     userBId = userB.id;
 
