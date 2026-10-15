@@ -13,7 +13,7 @@ describe("Phase 11: Public Marketing Website & SEO Suite", () => {
     expect(metadata.keywords).toContain("Tradovate CSV import");
 
     expect(metadata.openGraph?.title).toContain("TradePulse");
-    expect(metadata.twitter?.card).toBe("summary_large_image");
+    expect(metadata.twitter).toHaveProperty("card", "summary_large_image");
   });
 
   it("calculates emotional leakage and subscription ROI with mathematical accuracy", () => {

@@ -159,6 +159,8 @@ describe("Phase 10: SaaS Administrator Dashboard & Support Ticketing Suite", () 
       baseCurrency: "USD",
       timezone: "America/New_York",
       emailVerified: true,
+      twoFactorEnabled: false,
+      isSuspended: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });

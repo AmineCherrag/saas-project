@@ -6,6 +6,7 @@ import styles from "./landing/Landing.module.css";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EquityCurveChart } from "@/components/analytics/EquityCurveChart";
+import type { EquityCurvePoint } from "@/lib/analytics/analytics-service";
 import {
   TrendingUp,
   BarChart3,
@@ -27,14 +28,14 @@ import {
   BookOpen,
 } from "lucide-react";
 
-const sampleEquityData = [
-  { tradeId: "t1", tradeIndex: 1, tradeDate: "2026-10-06", symbol: "NQ", tradeNetPnl: 450, cumulativePnl: 450, peakPnl: 450, drawdown: 0, drawdownPct: 0 },
-  { tradeId: "t2", tradeIndex: 2, tradeDate: "2026-10-07", symbol: "ES", tradeNetPnl: 620, cumulativePnl: 1070, peakPnl: 1070, drawdown: 0, drawdownPct: 0 },
-  { tradeId: "t3", tradeIndex: 3, tradeDate: "2026-10-08", symbol: "NQ", tradeNetPnl: -240, cumulativePnl: 830, peakPnl: 1070, drawdown: 240, drawdownPct: 22.4 },
-  { tradeId: "t4", tradeIndex: 4, tradeDate: "2026-10-09", symbol: "NQ", tradeNetPnl: 890, cumulativePnl: 1720, peakPnl: 1720, drawdown: 0, drawdownPct: 0 },
-  { tradeId: "t5", tradeIndex: 5, tradeDate: "2026-10-10", symbol: "ES", tradeNetPnl: 1150, cumulativePnl: 2870, peakPnl: 2870, drawdown: 0, drawdownPct: 0 },
-  { tradeId: "t6", tradeIndex: 6, tradeDate: "2026-10-11", symbol: "NQ", tradeNetPnl: 780, cumulativePnl: 3650, peakPnl: 3650, drawdown: 0, drawdownPct: 0 },
-  { tradeId: "t7", tradeIndex: 7, tradeDate: "2026-10-12", symbol: "ES", tradeNetPnl: 1200, cumulativePnl: 4850, peakPnl: 4850, drawdown: 0, drawdownPct: 0 },
+const sampleEquityData: EquityCurvePoint[] = [
+  { tradeId: "t1", date: "2026-10-06", symbol: "NQ", tradeNetPnl: 450, cumulativePnl: 450, peakPnl: 450, drawdown: 0, drawdownPct: 0 },
+  { tradeId: "t2", date: "2026-10-07", symbol: "ES", tradeNetPnl: 620, cumulativePnl: 1070, peakPnl: 1070, drawdown: 0, drawdownPct: 0 },
+  { tradeId: "t3", date: "2026-10-08", symbol: "NQ", tradeNetPnl: -240, cumulativePnl: 830, peakPnl: 1070, drawdown: 240, drawdownPct: 22.4 },
+  { tradeId: "t4", date: "2026-10-09", symbol: "NQ", tradeNetPnl: 890, cumulativePnl: 1720, peakPnl: 1720, drawdown: 0, drawdownPct: 0 },
+  { tradeId: "t5", date: "2026-10-10", symbol: "ES", tradeNetPnl: 1150, cumulativePnl: 2870, peakPnl: 2870, drawdown: 0, drawdownPct: 0 },
+  { tradeId: "t6", date: "2026-10-11", symbol: "NQ", tradeNetPnl: 780, cumulativePnl: 3650, peakPnl: 3650, drawdown: 0, drawdownPct: 0 },
+  { tradeId: "t7", date: "2026-10-12", symbol: "ES", tradeNetPnl: 1200, cumulativePnl: 4850, peakPnl: 4850, drawdown: 0, drawdownPct: 0 },
 ];
 
 export default function LandingPage() {

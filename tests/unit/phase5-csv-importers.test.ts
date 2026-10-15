@@ -30,7 +30,10 @@ describe("Phase 5: CSV Import Engine & Broker Format Adapters", () => {
       baseCurrency: "USD",
       timezone: "America/New_York",
       emailVerified: true,
+      twoFactorEnabled: false,
+      isSuspended: false,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
     testUserId = user.id;
 

@@ -31,7 +31,10 @@ describe("Phase 8: Daily Journal, Playbooks & Discipline Tracker", () => {
       baseCurrency: "USD",
       timezone: "America/New_York",
       emailVerified: true,
+      twoFactorEnabled: false,
+      isSuspended: false,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
     userAId = userA.id;
 
@@ -46,7 +49,10 @@ describe("Phase 8: Daily Journal, Playbooks & Discipline Tracker", () => {
       baseCurrency: "USD",
       timezone: "America/New_York",
       emailVerified: true,
+      twoFactorEnabled: false,
+      isSuspended: false,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
     userBId = userB.id;
 
@@ -275,7 +281,7 @@ describe("Phase 8: Daily Journal, Playbooks & Discipline Tracker", () => {
   describe("Multi-Tenant Isolation", () => {
     it("ensures User B cannot view User A's journals, playbooks, or discipline rules", () => {
       JournalService.upsertEntry(userAId, { entryDate: "2026-10-12", title: "User A Secret Diary" });
-      PlaybookService.createPlaybook(userAId, { name: "User A Secret Strategy", setupRules: "Rules" });
+      PlaybookService.createPlaybook(userAId, { name: "User A Secret Strategy", setupRules: "Rules", entryCriteria: "Entry", exitCriteria: "Exit", riskRules: "Risk" });
       DisciplineService.createRule(userAId, { title: "User A Rule", ruleType: "DAILY" });
 
       expect(JournalService.getUserEntries(userBId).length).toBe(0);
