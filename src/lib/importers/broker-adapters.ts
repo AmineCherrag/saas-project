@@ -273,3 +273,115 @@ export function detectBrokerPreset(headers: string[]): string {
 
   return "universal";
 }
+
+/**
+ * Smart fuzzy column matcher that pairs CSV headers to TradePulse fields
+ */
+export function autoMatchColumns(headers: string[], presetId?: string): ColumnMapping {
+  const cleanHeaders = headers.map((h) => h.trim());
+  if (cleanHeaders.length === 0) {
+    return { ...BROKER_PRESETS.universal.defaultMapping };
+  }
+
+  const resolvedPreset = presetId && presetId !== "auto" && BROKER_PRESETS[presetId]
+    ? presetId
+    : detectBrokerPreset(cleanHeaders);
+
+  const preset = BROKER_PRESETS[resolvedPreset] || BROKER_PRESETS.universal;
+  const baseMapping: ColumnMapping = { ...preset.defaultMapping };
+
+  // Helper: find header by exact, case-insensitive, or regex
+  const findHeader = (
+    assigned: string | undefined,
+    regexList: RegExp[]
+  ): string | undefined => {
+    if (assigned) {
+      const direct = cleanHeaders.find((h) => h.toLowerCase() === assigned.toLowerCase());
+      if (direct) return direct;
+    }
+
+    for (const rx of regexList) {
+      const match = cleanHeaders.find((h) => rx.test(h));
+      if (match) return match;
+    }
+
+    return undefined;
+  };
+
+  const symbol = findHeader(baseMapping.symbolColumn, [
+    /^(symbol|ticker|contract|instrument|asset|pair|underlying|security|product|market|code)$/i,
+    /(symbol|ticker|contract|instrument|pair|asset)/i,
+  ]) || cleanHeaders[0] || "Symbol";
+
+  const direction = findHeader(baseMapping.directionColumn, [
+    /^(direction|side|action|b\/s|buy\/sell|trade.?type|order.?type|pos.?effect|bs|type)$/i,
+    /(direction|side|action|buy.*sell)/i,
+  ]) || (cleanHeaders.find((h) => h !== symbol) || cleanHeaders[0] || "Direction");
+
+  const entryTime = findHeader(baseMapping.entryTimeColumn, [
+    /^(entry.?time|exec.?time|timestamp|datetime|date.?time|open.?time|trade.?date|entry.?date|trans.?date)$/i,
+    /^(time|date)$/i,
+    /(time|date|timestamp)/i,
+  ]) || (cleanHeaders.find((h) => h !== symbol && h !== direction) || cleanHeaders[0] || "Entry Time");
+
+  const entryPrice = findHeader(baseMapping.entryPriceColumn, [
+    /^(entry.?price|exec.?price|avg.?price|fill.?price|open.?price|tradeprice|buy.?price|rate|cost|price)$/i,
+    /(price|rate|cost|avg)/i,
+  ]) || (cleanHeaders.find((h) => h !== symbol && h !== direction && h !== entryTime) || cleanHeaders[0] || "Entry Price");
+
+  const quantity = findHeader(baseMapping.quantityColumn, [
+    /^(filled.?qty|quantity|qty|volume|size|contracts|shares|lots|amount|units|count)$/i,
+    /(qty|quantity|volume|size|shares|lots|amount)/i,
+  ]) || (cleanHeaders.find((h) => h !== symbol && h !== direction && h !== entryTime && h !== entryPrice) || cleanHeaders[0] || "Quantity");
+
+  const exitTime = findHeader(baseMapping.exitTimeColumn, [
+    /^(exit.?time|close.?time|close.?date|exit.?date|cover.?time|closed)$/i,
+    /(close.*time|exit.*time)/i,
+  ]);
+
+  const exitPrice = findHeader(baseMapping.exitPriceColumn, [
+    /^(exit.?price|close.?price|cover.?price|sell.?price)$/i,
+    /(close.*price|exit.*price)/i,
+  ]);
+
+  const fees = findHeader(baseMapping.feesColumn, [
+    /^(fees?|commissions?|comm|ibcommission|total.?fees?|brokerage)$/i,
+    /(fee|comm)/i,
+  ]);
+
+  const stopLoss = findHeader(baseMapping.stopLossColumn, [
+    /^(stop.?loss|s\s*\/\s*l|sl|stop)$/i,
+    /(stop.*loss|s\/l)/i,
+  ]);
+
+  const takeProfit = findHeader(baseMapping.takeProfitColumn, [
+    /^(take.?profit|t\s*\/\s*p|tp|target)$/i,
+    /(take.*profit|t\/p)/i,
+  ]);
+
+  const contractMultiplier = findHeader(baseMapping.contractMultiplierColumn, [
+    /^(multiplier|contract.?size|point.?value)$/i,
+    /(multiplier)/i,
+  ]);
+
+  const notes = findHeader(baseMapping.notesColumn, [
+    /^(notes?|comments?|tags?|memo|reason)$/i,
+    /(note|comment|tag|reason)/i,
+  ]);
+
+  return {
+    symbolColumn: symbol,
+    directionColumn: direction,
+    entryTimeColumn: entryTime,
+    entryPriceColumn: entryPrice,
+    quantityColumn: quantity,
+    exitTimeColumn: exitTime,
+    exitPriceColumn: exitPrice,
+    feesColumn: fees,
+    commissionsColumn: baseMapping.commissionsColumn ? findHeader(baseMapping.commissionsColumn, [/(commission|comm)/i]) : undefined,
+    stopLossColumn: stopLoss,
+    takeProfitColumn: takeProfit,
+    contractMultiplierColumn: contractMultiplier,
+    notesColumn: notes,
+  };
+}

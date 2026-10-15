@@ -1,6 +1,6 @@
 import Papa from "papaparse";
 import { ImportBatch, ImportPreviewResult, ImportPreviewRow, Trade, TradeDirection, AssetClass } from "@/types";
-import { BROKER_PRESETS, ColumnMapping, detectBrokerPreset, normalizeDirection, normalizeTimestamp } from "./broker-adapters";
+import { BROKER_PRESETS, ColumnMapping, detectBrokerPreset, autoMatchColumns, normalizeDirection, normalizeTimestamp } from "./broker-adapters";
 import { ImportStore, FingerprintRecord } from "./import-store";
 import { TradeService } from "../trades/trade-service";
 import { AccountService } from "../accounts/account-service";
@@ -53,13 +53,19 @@ export class ImportService {
    * Parse CSV content and extract headers & records
    */
   static parseRawCSV(csvContent: string): { headers: string[]; rows: Record<string, string>[] } {
-    const parsed = Papa.parse<Record<string, string>>(csvContent.trim(), {
+    let clean = (csvContent || "").trim();
+    if (clean.charCodeAt(0) === 0xfeff) {
+      clean = clean.slice(1);
+    }
+
+    const parsed = Papa.parse<Record<string, string>>(clean, {
       header: true,
       skipEmptyLines: "greedy",
-      transformHeader: (h) => h.trim(),
+      delimitersToGuess: [",", "\t", "|", ";"],
+      transformHeader: (h) => h.trim().replace(/^["']|["']$/g, ""),
     });
 
-    const headers = parsed.meta.fields ? parsed.meta.fields.filter((h) => h.length > 0) : [];
+    const headers = parsed.meta.fields ? parsed.meta.fields.filter((h) => h && h.trim().length > 0) : [];
     const rows = parsed.data.filter((row) => Object.values(row).some((val) => val && String(val).trim() !== ""));
 
     return { headers, rows };
@@ -73,26 +79,25 @@ export class ImportService {
     presetId?: string,
     customMapping?: Partial<ColumnMapping>
   ): { preset: string; mapping: ColumnMapping } {
-    let resolvedPresetId = presetId && presetId !== "auto" && BROKER_PRESETS[presetId] ? presetId : detectBrokerPreset(headers);
-    const preset = BROKER_PRESETS[resolvedPresetId] || BROKER_PRESETS.universal;
-
-    const baseMapping: ColumnMapping = { ...preset.defaultMapping };
+    const resolvedPresetId =
+      presetId && presetId !== "auto" && BROKER_PRESETS[presetId] ? presetId : detectBrokerPreset(headers);
+    const baseMapping = autoMatchColumns(headers, resolvedPresetId);
 
     // If custom overrides provided, apply them
     if (customMapping) {
       if (customMapping.symbolColumn) baseMapping.symbolColumn = customMapping.symbolColumn;
       if (customMapping.directionColumn) baseMapping.directionColumn = customMapping.directionColumn;
       if (customMapping.entryTimeColumn) baseMapping.entryTimeColumn = customMapping.entryTimeColumn;
-      if (customMapping.exitTimeColumn) baseMapping.exitTimeColumn = customMapping.exitTimeColumn;
+      if (customMapping.exitTimeColumn !== undefined) baseMapping.exitTimeColumn = customMapping.exitTimeColumn || undefined;
       if (customMapping.entryPriceColumn) baseMapping.entryPriceColumn = customMapping.entryPriceColumn;
-      if (customMapping.exitPriceColumn) baseMapping.exitPriceColumn = customMapping.exitPriceColumn;
+      if (customMapping.exitPriceColumn !== undefined) baseMapping.exitPriceColumn = customMapping.exitPriceColumn || undefined;
       if (customMapping.quantityColumn) baseMapping.quantityColumn = customMapping.quantityColumn;
-      if (customMapping.feesColumn) baseMapping.feesColumn = customMapping.feesColumn;
-      if (customMapping.commissionsColumn) baseMapping.commissionsColumn = customMapping.commissionsColumn;
-      if (customMapping.contractMultiplierColumn) baseMapping.contractMultiplierColumn = customMapping.contractMultiplierColumn;
-      if (customMapping.stopLossColumn) baseMapping.stopLossColumn = customMapping.stopLossColumn;
-      if (customMapping.takeProfitColumn) baseMapping.takeProfitColumn = customMapping.takeProfitColumn;
-      if (customMapping.notesColumn) baseMapping.notesColumn = customMapping.notesColumn;
+      if (customMapping.feesColumn !== undefined) baseMapping.feesColumn = customMapping.feesColumn || undefined;
+      if (customMapping.commissionsColumn !== undefined) baseMapping.commissionsColumn = customMapping.commissionsColumn || undefined;
+      if (customMapping.contractMultiplierColumn !== undefined) baseMapping.contractMultiplierColumn = customMapping.contractMultiplierColumn || undefined;
+      if (customMapping.stopLossColumn !== undefined) baseMapping.stopLossColumn = customMapping.stopLossColumn || undefined;
+      if (customMapping.takeProfitColumn !== undefined) baseMapping.takeProfitColumn = customMapping.takeProfitColumn || undefined;
+      if (customMapping.notesColumn !== undefined) baseMapping.notesColumn = customMapping.notesColumn || undefined;
     }
 
     return { preset: resolvedPresetId, mapping: baseMapping };

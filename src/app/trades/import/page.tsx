@@ -3,10 +3,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Papa from "papaparse";
 import styles from "./Import.module.css";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Select";
+import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import {
   TradingAccount,
@@ -17,6 +19,7 @@ import {
   BROKER_PRESETS,
   ColumnMapping,
   detectBrokerPreset,
+  autoMatchColumns,
 } from "@/lib/importers/broker-adapters";
 import {
   UploadCloud,
@@ -31,6 +34,10 @@ import {
   XCircle,
   Clock,
   Layers,
+  Plus,
+  RefreshCw,
+  LogIn,
+  TableProperties,
 } from "lucide-react";
 
 export default function ImportTradesPage() {
@@ -40,15 +47,29 @@ export default function ImportTradesPage() {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
+  const [isAccountsLoading, setIsAccountsLoading] = useState<boolean>(true);
+  const [isUnauthenticated, setIsUnauthenticated] = useState<boolean>(false);
   const [brokerPreset, setBrokerPreset] = useState<string>("auto");
 
   // File & Content
   const [fileName, setFileName] = useState<string>("");
+  const [fileSizeText, setFileSizeText] = useState<string>("");
   const [csvContent, setCsvContent] = useState<string>("");
   const [detectedHeaders, setDetectedHeaders] = useState<string[]>([]);
+  const [rawSampleRows, setRawSampleRows] = useState<Record<string, string>[]>([]);
+  const [totalDetectedRows, setTotalDetectedRows] = useState<number>(0);
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>(
     BROKER_PRESETS.universal.defaultMapping
   );
+
+  // Quick Account Modal
+  const [isCreateAccountModalOpen, setIsCreateAccountModalOpen] = useState<boolean>(false);
+  const [newAccountName, setNewAccountName] = useState<string>("Primary Trading Account");
+  const [newAccountBroker, setNewAccountBroker] = useState<string>("Interactive Brokers");
+  const [newAccountType, setNewAccountType] = useState<string>("CASH");
+  const [newAssetClass, setNewAssetClass] = useState<string>("STOCKS");
+  const [newInitialBalance, setNewInitialBalance] = useState<number>(10000);
+  const [isCreatingAccount, setIsCreatingAccount] = useState<boolean>(false);
 
   // Preview & Processing
   const [isLoadingPreview, setIsLoadingPreview] = useState<boolean>(false);
@@ -77,17 +98,24 @@ export default function ImportTradesPage() {
   }, []);
 
   const fetchAccounts = async () => {
+    setIsAccountsLoading(true);
     try {
       const res = await fetch("/api/v1/accounts");
+      if (res.status === 401) {
+        setIsUnauthenticated(true);
+        return;
+      }
       const json = await res.json();
       if (json.success && json.data) {
         setAccounts(json.data);
         if (json.data.length > 0) {
-          setSelectedAccountId(json.data[0].id);
+          setSelectedAccountId((prev) => (prev ? prev : json.data[0].id));
         }
       }
     } catch {
       setErrorMessage("Failed to load trading accounts.");
+    } finally {
+      setIsAccountsLoading(false);
     }
   };
 
@@ -103,55 +131,150 @@ export default function ImportTradesPage() {
     }
   };
 
-  // Handle File Drop / Selection
+  // Quick Create Account Handler
+  const handleCreateAccount = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setIsCreatingAccount(true);
+    setErrorMessage(null);
+    try {
+      const res = await fetch("/api/v1/accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newAccountName || "Primary Trading Account",
+          brokerName: newAccountBroker || "General Broker",
+          accountType: newAccountType || "CASH",
+          assetClass: newAssetClass || "STOCKS",
+          initialBalance: Number(newInitialBalance) || 10000,
+          currency: "USD",
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error?.message || "Failed to create account");
+      }
+
+      const created = json.data as TradingAccount;
+      setAccounts((prev) => [created, ...prev]);
+      setSelectedAccountId(created.id);
+      setIsCreateAccountModalOpen(false);
+      return created;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to create account";
+      setErrorMessage(msg);
+      return null;
+    } finally {
+      setIsCreatingAccount(false);
+    }
+  };
+
+  // Format file size
+  const formatBytes = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  // Handle File Drop / Selection with PapaParse
   const handleFileChange = (file: File) => {
     setErrorMessage(null);
     if (!file.name.endsWith(".csv") && !file.name.endsWith(".txt")) {
-      setErrorMessage("Please select a valid CSV file (.csv).");
+      setErrorMessage("Please select a valid CSV file (.csv or .txt).");
       return;
     }
 
     setFileName(file.name);
+    setFileSizeText(formatBytes(file.size));
+
     const reader = new FileReader();
     reader.onload = (e) => {
-      const content = e.target?.result as string;
+      let content = (e.target?.result as string) || "";
+      // Strip UTF-8 Byte Order Mark if present
+      if (content.charCodeAt(0) === 0xfeff) {
+        content = content.slice(1);
+      }
       setCsvContent(content);
 
-      // Extract first line headers
-      const lines = content.split(/\r?\n/).filter((l) => l.trim().length > 0);
-      if (lines.length > 0) {
-        const headers = lines[0].split(",").map((h) => h.replace(/["']/g, "").trim());
+      try {
+        const parsed = Papa.parse<Record<string, string>>(content.trim(), {
+          header: true,
+          skipEmptyLines: "greedy",
+          delimitersToGuess: [",", "\t", "|", ";"],
+          transformHeader: (h) => h.trim().replace(/^["']|["']$/g, ""),
+        });
+
+        const headers = parsed.meta.fields
+          ? parsed.meta.fields.filter((h) => h && h.trim().length > 0)
+          : [];
+
+        if (headers.length === 0) {
+          setErrorMessage("No column headers detected in this CSV file. Please ensure line 1 contains valid column titles.");
+          return;
+        }
+
         setDetectedHeaders(headers);
 
-        const detected = detectBrokerPreset(headers);
+        const validRows = parsed.data.filter((row) =>
+          Object.values(row).some((val) => val && String(val).trim() !== "")
+        );
+        setTotalDetectedRows(validRows.length);
+        setRawSampleRows(validRows.slice(0, 3));
+
+        // Intelligent auto-mapping
+        const mapping = autoMatchColumns(headers, brokerPreset);
+        setColumnMapping(mapping);
+
+        // Auto-detect preset if in auto mode
         if (brokerPreset === "auto") {
-          setColumnMapping(BROKER_PRESETS[detected]?.defaultMapping || BROKER_PRESETS.universal.defaultMapping);
+          const detectedPresetId = detectBrokerPreset(headers);
+          if (detectedPresetId !== "universal") {
+            setBrokerPreset(detectedPresetId);
+          }
         }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Error parsing CSV";
+        setErrorMessage(`CSV parsing error: ${msg}`);
       }
     };
+
     reader.readAsText(file);
   };
 
   const handlePresetSelect = (presetId: string) => {
     setBrokerPreset(presetId);
-    if (presetId !== "auto" && BROKER_PRESETS[presetId]) {
-      setColumnMapping(BROKER_PRESETS[presetId].defaultMapping);
-    } else if (detectedHeaders.length > 0) {
-      const detected = detectBrokerPreset(detectedHeaders);
-      setColumnMapping(BROKER_PRESETS[detected]?.defaultMapping || BROKER_PRESETS.universal.defaultMapping);
+    if (detectedHeaders.length > 0) {
+      const mapping = autoMatchColumns(detectedHeaders, presetId);
+      setColumnMapping(mapping);
     }
   };
 
   // Step 1 -> Step 2
-  const handleProceedToMapping = () => {
+  const handleProceedToMapping = async () => {
     if (!csvContent) {
       setErrorMessage("Please select or drop a CSV file to continue.");
       return;
     }
-    if (!selectedAccountId) {
-      setErrorMessage("Please select a target trading account.");
-      return;
+
+    let targetAccountId = selectedAccountId;
+
+    // If no account exists or none is selected, auto-create one or prompt
+    if (!targetAccountId) {
+      if (accounts.length > 0) {
+        targetAccountId = accounts[0].id;
+        setSelectedAccountId(targetAccountId);
+      } else {
+        // Auto-provision a default account so user is never blocked!
+        const created = await handleCreateAccount();
+        if (!created) {
+          setIsCreateAccountModalOpen(true);
+          setErrorMessage("Please create a trading account to store your imported trades.");
+          return;
+        }
+        targetAccountId = created.id;
+      }
     }
+
     setErrorMessage(null);
     setStep(2);
   };
@@ -252,8 +375,11 @@ export default function ImportTradesPage() {
   const resetWizard = () => {
     setStep(1);
     setFileName("");
+    setFileSizeText("");
     setCsvContent("");
     setDetectedHeaders([]);
+    setRawSampleRows([]);
+    setTotalDetectedRows(0);
     setPreviewResult(null);
     setImportReport(null);
     setErrorMessage(null);
@@ -345,11 +471,26 @@ export default function ImportTradesPage() {
         </div>
       </div>
 
+      {/* Unauthenticated Alert Banner */}
+      {isUnauthenticated && (
+        <div className={styles.accountNoticeBanner}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <LogIn size={18} />
+            <span>You are not logged in. Log in to save imported trades into your personal trading journal.</span>
+          </div>
+          <Link href="/login">
+            <Button size="sm" variant="primary">
+              Log In Now
+            </Button>
+          </Link>
+        </div>
+      )}
+
       {/* Error Banner */}
       {errorMessage && (
-        <div style={{ padding: "12px 16px", background: "rgba(239, 68, 68, 0.1)", border: "1px solid var(--brand-crimson)", borderRadius: "var(--radius-md)", color: "var(--brand-crimson)", fontSize: "14px" }}>
-          <AlertTriangle size={16} style={{ display: "inline", marginRight: "8px", verticalAlign: "text-bottom" }} />
-          {errorMessage}
+        <div style={{ padding: "12px 16px", background: "rgba(239, 68, 68, 0.1)", border: "1px solid var(--brand-crimson)", borderRadius: "var(--radius-md)", color: "var(--brand-crimson)", fontSize: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
+          <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+          <span>{errorMessage}</span>
         </div>
       )}
 
@@ -357,16 +498,53 @@ export default function ImportTradesPage() {
       {step === 1 && (
         <div className={styles.card}>
           <div className={styles.uploadSection}>
+            {/* Account Notice if zero accounts */}
+            {!isAccountsLoading && accounts.length === 0 && !isUnauthenticated && (
+              <div className={styles.accountNoticeBanner}>
+                <div>
+                  <strong>No Trading Accounts Found:</strong> You need an account to assign your imported trades.
+                </div>
+                <Button size="sm" variant="secondary" onClick={() => setIsCreateAccountModalOpen(true)}>
+                  <Plus size={14} style={{ marginRight: "4px" }} /> Create Trading Account
+                </Button>
+              </div>
+            )}
+
             <div className={styles.formGrid}>
-              <Select
-                label="Target Trading Account"
-                value={selectedAccountId}
-                onChange={(e) => setSelectedAccountId(e.target.value)}
-                options={accounts.map((a) => ({
-                  value: a.id,
-                  label: `${a.name} (${a.brokerName} - ${a.assetClass})`,
-                }))}
-              />
+              <div>
+                <Select
+                  label="Target Trading Account"
+                  value={selectedAccountId}
+                  onChange={(e) => setSelectedAccountId(e.target.value)}
+                  options={
+                    accounts.length > 0
+                      ? accounts.map((a) => ({
+                          value: a.id,
+                          label: `${a.name} (${a.brokerName} - ${a.assetClass})`,
+                        }))
+                      : [{ value: "", label: "-- Create or select an account below --" }]
+                  }
+                />
+                {accounts.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateAccountModalOpen(true)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "var(--brand-blue)",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                      padding: "4px 0",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    <Plus size={12} /> Add another account
+                  </button>
+                )}
+              </div>
 
               <Select
                 label="Broker Format Preset"
@@ -404,20 +582,32 @@ export default function ImportTradesPage() {
                 onChange={(e) => {
                   if (e.target.files?.[0]) {
                     handleFileChange(e.target.files[0]);
+                    e.target.value = ""; // Reset so same file can be re-selected
                   }
                 }}
               />
               <UploadCloud className={styles.dropIcon} />
               <div>
                 <p className={styles.dropText}>Click or drag & drop broker CSV file here</p>
-                <p className={styles.dropSubtext}>Supports CSV up to 10MB (UTF-8 encoded)</p>
+                <p className={styles.dropSubtext}>Supports CSV up to 10MB (UTF-8, comma, semicolon, tab)</p>
               </div>
 
               {fileName && (
-                <div className={styles.fileSelectedBadge}>
-                  <FileSpreadsheet size={16} />
-                  <span>{fileName}</span>
-                  <Badge variant="success">Loaded</Badge>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+                  <div className={styles.fileSelectedBadge}>
+                    <FileSpreadsheet size={16} />
+                    <span>{fileName} {fileSizeText && <span style={{ opacity: 0.75 }}>({fileSizeText})</span>}</span>
+                    <Badge variant="success">Parsed Successfully</Badge>
+                  </div>
+                  {totalDetectedRows > 0 && (
+                    <div className={styles.fileMetaInfo}>
+                      <Badge variant="info">{totalDetectedRows} trades detected</Badge>
+                      <Badge variant="neutral">{detectedHeaders.length} columns identified</Badge>
+                      {brokerPreset !== "auto" && (
+                        <Badge variant="warning">Preset: {brokerPreset.toUpperCase()}</Badge>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -445,7 +635,7 @@ export default function ImportTradesPage() {
               <Button
                 variant="primary"
                 onClick={handleProceedToMapping}
-                disabled={!csvContent || !selectedAccountId}
+                disabled={!csvContent}
               >
                 Configure Mapping <ArrowRight size={16} style={{ marginLeft: "8px" }} />
               </Button>
@@ -457,17 +647,59 @@ export default function ImportTradesPage() {
       {/* STEP 2: Column Mapping */}
       {step === 2 && (
         <div className={styles.card}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
             <div>
               <h2 style={{ fontSize: "var(--font-size-lg)", fontWeight: 700, color: "var(--text-primary)" }}>
                 Reconcile & Map Columns
               </h2>
               <p style={{ fontSize: "var(--font-size-sm)", color: "var(--text-secondary)" }}>
-                Match your CSV file headers to TradePulse trade engine fields.
+                Verify and fine-tune your CSV headers mapped to TradePulse trade engine fields.
               </p>
             </div>
-            <Badge variant="info">Preset: {brokerPreset.toUpperCase()}</Badge>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Badge variant="info">Preset: {brokerPreset.toUpperCase()}</Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const refreshed = autoMatchColumns(detectedHeaders, brokerPreset);
+                  setColumnMapping(refreshed);
+                }}
+              >
+                <RefreshCw size={14} style={{ marginRight: "6px" }} /> Reset Auto-Mapping
+              </Button>
+            </div>
           </div>
+
+          {/* Raw CSV Sample Preview Table */}
+          {rawSampleRows.length > 0 && (
+            <div className={styles.rawSampleCard}>
+              <div className={styles.rawSampleTitle}>
+                <TableProperties size={14} style={{ display: "inline", marginRight: "6px", verticalAlign: "middle" }} />
+                Uploaded CSV Data Sample (First {rawSampleRows.length} Rows):
+              </div>
+              <div className={styles.previewTableWrapper} style={{ maxHeight: "160px" }}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      {detectedHeaders.map((header) => (
+                        <th key={header}>{header}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rawSampleRows.map((row, idx) => (
+                      <tr key={idx}>
+                        {detectedHeaders.map((header) => (
+                          <td key={header}>{row[header] || "-"}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           <div className={styles.mappingGrid}>
             <div className={styles.fieldMapItem}>
@@ -530,7 +762,7 @@ export default function ImportTradesPage() {
               <Select
                 value={columnMapping.exitTimeColumn || ""}
                 onChange={(e) => setColumnMapping({ ...columnMapping, exitTimeColumn: e.target.value || undefined })}
-                options={[{ value: "", label: "-- None --" }, ...detectedHeaders.map((h) => ({ value: h, label: h }))]}
+                options={[{ value: "", label: "-- None / Not in CSV --" }, ...detectedHeaders.map((h) => ({ value: h, label: h }))]}
               />
             </div>
 
@@ -539,7 +771,7 @@ export default function ImportTradesPage() {
               <Select
                 value={columnMapping.exitPriceColumn || ""}
                 onChange={(e) => setColumnMapping({ ...columnMapping, exitPriceColumn: e.target.value || undefined })}
-                options={[{ value: "", label: "-- None --" }, ...detectedHeaders.map((h) => ({ value: h, label: h }))]}
+                options={[{ value: "", label: "-- None / Not in CSV --" }, ...detectedHeaders.map((h) => ({ value: h, label: h }))]}
               />
             </div>
 
@@ -548,7 +780,7 @@ export default function ImportTradesPage() {
               <Select
                 value={columnMapping.feesColumn || ""}
                 onChange={(e) => setColumnMapping({ ...columnMapping, feesColumn: e.target.value || undefined })}
-                options={[{ value: "", label: "-- None --" }, ...detectedHeaders.map((h) => ({ value: h, label: h }))]}
+                options={[{ value: "", label: "-- None / Not in CSV --" }, ...detectedHeaders.map((h) => ({ value: h, label: h }))]}
               />
             </div>
 
@@ -557,7 +789,7 @@ export default function ImportTradesPage() {
               <Select
                 value={columnMapping.contractMultiplierColumn || ""}
                 onChange={(e) => setColumnMapping({ ...columnMapping, contractMultiplierColumn: e.target.value || undefined })}
-                options={[{ value: "", label: "-- None --" }, ...detectedHeaders.map((h) => ({ value: h, label: h }))]}
+                options={[{ value: "", label: "-- None / Not in CSV --" }, ...detectedHeaders.map((h) => ({ value: h, label: h }))]}
               />
             </div>
 
@@ -566,7 +798,25 @@ export default function ImportTradesPage() {
               <Select
                 value={columnMapping.stopLossColumn || ""}
                 onChange={(e) => setColumnMapping({ ...columnMapping, stopLossColumn: e.target.value || undefined })}
-                options={[{ value: "", label: "-- None --" }, ...detectedHeaders.map((h) => ({ value: h, label: h }))]}
+                options={[{ value: "", label: "-- None / Not in CSV --" }, ...detectedHeaders.map((h) => ({ value: h, label: h }))]}
+              />
+            </div>
+
+            <div className={styles.fieldMapItem}>
+              <label className={styles.fieldLabel}>Take Profit (Optional)</label>
+              <Select
+                value={columnMapping.takeProfitColumn || ""}
+                onChange={(e) => setColumnMapping({ ...columnMapping, takeProfitColumn: e.target.value || undefined })}
+                options={[{ value: "", label: "-- None / Not in CSV --" }, ...detectedHeaders.map((h) => ({ value: h, label: h }))]}
+              />
+            </div>
+
+            <div className={styles.fieldMapItem}>
+              <label className={styles.fieldLabel}>Notes / Comments (Optional)</label>
+              <Select
+                value={columnMapping.notesColumn || ""}
+                onChange={(e) => setColumnMapping({ ...columnMapping, notesColumn: e.target.value || undefined })}
+                options={[{ value: "", label: "-- None / Not in CSV --" }, ...detectedHeaders.map((h) => ({ value: h, label: h }))]}
               />
             </div>
           </div>
@@ -836,6 +1086,87 @@ export default function ImportTradesPage() {
           )}
         </div>
       </div>
+
+      {/* Quick Create Account Modal */}
+      <Modal
+        isOpen={isCreateAccountModalOpen}
+        onClose={() => setIsCreateAccountModalOpen(false)}
+        title="Create Trading Account"
+      >
+        <form onSubmit={handleCreateAccount} style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+          <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-sm)" }}>
+            Create an account to track your balance and organize your imported trades.
+          </p>
+
+          <Input
+            label="Account Name"
+            value={newAccountName}
+            onChange={(e) => setNewAccountName(e.target.value)}
+            placeholder="e.g. Tradovate 50K Prop, IBKR Live"
+            required
+          />
+
+          <Input
+            label="Broker / Platform"
+            value={newAccountBroker}
+            onChange={(e) => setNewAccountBroker(e.target.value)}
+            placeholder="e.g. Tradovate, NinjaTrader, Schwab"
+            required
+          />
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
+            <Select
+              label="Account Type"
+              value={newAccountType}
+              onChange={(e) => setNewAccountType(e.target.value)}
+              options={[
+                { value: "CASH", label: "Cash" },
+                { value: "MARGIN", label: "Margin" },
+                { value: "PROP_EVALUATION", label: "Prop Evaluation" },
+                { value: "PROP_FUNDED", label: "Prop Funded" },
+                { value: "DEMO", label: "Demo / Paper" },
+              ]}
+            />
+
+            <Select
+              label="Primary Asset Class"
+              value={newAssetClass}
+              onChange={(e) => setNewAssetClass(e.target.value)}
+              options={[
+                { value: "STOCKS", label: "Stocks / Equities" },
+                { value: "FUTURES", label: "Futures" },
+                { value: "FOREX", label: "Forex" },
+                { value: "CRYPTO", label: "Crypto" },
+                { value: "OPTIONS", label: "Options" },
+                { value: "CFDS", label: "CFDs" },
+              ]}
+            />
+          </div>
+
+          <Input
+            label="Starting Balance (USD)"
+            type="number"
+            value={newInitialBalance}
+            onChange={(e) => setNewInitialBalance(Number(e.target.value))}
+            min={0}
+            step="any"
+            required
+          />
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-3)", marginTop: "var(--space-2)" }}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsCreateAccountModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" isLoading={isCreatingAccount}>
+              Create & Select Account
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Revert Batch Confirmation Modal */}
       <Modal
