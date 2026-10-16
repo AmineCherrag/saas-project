@@ -1,14 +1,33 @@
+import { PrismaClient } from "@prisma/client";
+
 /**
  * TradePulse Database Client
- * Configurable for PostgreSQL (production) with fallback support for development/offline testing.
+ * Configured for PostgreSQL database via DATABASE_URL.
+ * SQLite and file-based fallbacks are completely removed for production safety.
  */
 
-// Safe database connection URL derivation
-export function getDatabaseUrl(): string {
-  return process.env.DATABASE_URL || "file:./data/tradepulse.db";
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+export function getDatabaseUrl(): string | undefined {
+  return process.env.DATABASE_URL;
 }
 
 export function isPostgresDatabase(): boolean {
   const url = getDatabaseUrl();
-  return url.startsWith("postgres://") || url.startsWith("postgresql://");
+  return Boolean(url && (url.startsWith("postgres://") || url.startsWith("postgresql://")));
 }
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+  });
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
+}
+
+export default prisma;
+

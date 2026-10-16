@@ -1,119 +1,180 @@
-import fs from "fs";
-import path from "path";
 import { DisciplineRule, DisciplineLog } from "@/types";
+import { prisma, isPostgresDatabase } from "../db/prisma";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const RULES_FILE = path.join(DATA_DIR, "discipline_rules.json");
-const LOGS_FILE = path.join(DATA_DIR, "discipline_logs.json");
+const inMemoryRules = new Map<string, DisciplineRule>();
+const inMemoryLogs = new Map<string, DisciplineLog>();
 
-function ensureFiles() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  if (!fs.existsSync(RULES_FILE)) {
-    fs.writeFileSync(RULES_FILE, JSON.stringify([], null, 2), "utf-8");
-  }
-  if (!fs.existsSync(LOGS_FILE)) {
-    fs.writeFileSync(LOGS_FILE, JSON.stringify([], null, 2), "utf-8");
-  }
-}
-
-function readRules(): DisciplineRule[] {
-  ensureFiles();
-  try {
-    const raw = fs.readFileSync(RULES_FILE, "utf-8");
-    return JSON.parse(raw) as DisciplineRule[];
-  } catch {
-    return [];
-  }
-}
-
-function writeRules(rules: DisciplineRule[]) {
-  ensureFiles();
-  fs.writeFileSync(RULES_FILE, JSON.stringify(rules, null, 2), "utf-8");
-}
-
-function readLogs(): DisciplineLog[] {
-  ensureFiles();
-  try {
-    const raw = fs.readFileSync(LOGS_FILE, "utf-8");
-    return JSON.parse(raw) as DisciplineLog[];
-  } catch {
-    return [];
-  }
-}
-
-function writeLogs(logs: DisciplineLog[]) {
-  ensureFiles();
-  fs.writeFileSync(LOGS_FILE, JSON.stringify(logs, null, 2), "utf-8");
+function mapDbRuleToDisciplineRule(dbR: any): DisciplineRule {
+  return {
+    id: dbR.id,
+    userId: dbR.userId,
+    title: dbR.title,
+    description: dbR.description || undefined,
+    ruleType: dbR.ruleType as any,
+    targetValue: dbR.targetValue || undefined,
+    isActive: dbR.isActive,
+    createdAt: dbR.createdAt instanceof Date ? dbR.createdAt.toISOString() : String(dbR.createdAt),
+  };
 }
 
 export class DisciplineStore {
   // Rules CRUD
   static getRulesByUserId(userId: string): DisciplineRule[] {
-    const rules = readRules();
-    return rules.filter((r) => r.userId === userId);
+    if (isPostgresDatabase()) {
+      prisma.disciplineRule.findMany({ where: { userId } })
+        .then((rules) => {
+          for (const r of rules) inMemoryRules.set(r.id, mapDbRuleToDisciplineRule(r));
+        })
+        .catch(() => {});
+    }
+    return Array.from(inMemoryRules.values()).filter((r) => r.userId === userId);
+  }
+
+  static async getRulesByUserIdAsync(userId: string): Promise<DisciplineRule[]> {
+    if (isPostgresDatabase()) {
+      try {
+        const rules = await prisma.disciplineRule.findMany({ where: { userId } });
+        const mapped = rules.map(mapDbRuleToDisciplineRule);
+        for (const r of mapped) inMemoryRules.set(r.id, r);
+        return mapped;
+      } catch (e) {
+        console.warn("[DisciplineStore.getRulesByUserIdAsync] PostgreSQL fallback to memory:", e);
+      }
+    }
+    return this.getRulesByUserId(userId);
   }
 
   static findRuleById(id: string): DisciplineRule | null {
-    const rules = readRules();
-    return rules.find((r) => r.id === id) || null;
+    if (isPostgresDatabase()) {
+      prisma.disciplineRule.findUnique({ where: { id } })
+        .then((r) => {
+          if (r) inMemoryRules.set(r.id, mapDbRuleToDisciplineRule(r));
+        })
+        .catch(() => {});
+    }
+    return inMemoryRules.get(id) || null;
   }
 
   static createRule(rule: DisciplineRule): DisciplineRule {
-    const rules = readRules();
-    rules.push(rule);
-    writeRules(rules);
+    inMemoryRules.set(rule.id, { ...rule });
+
+    if (isPostgresDatabase()) {
+      prisma.disciplineRule.upsert({
+        where: { id: rule.id },
+        create: {
+          id: rule.id,
+          userId: rule.userId,
+          title: rule.title,
+          description: rule.description || null,
+          ruleType: rule.ruleType,
+          targetValue: rule.targetValue || null,
+          isActive: rule.isActive,
+          createdAt: new Date(rule.createdAt),
+        },
+        update: {
+          title: rule.title,
+          description: rule.description || null,
+          ruleType: rule.ruleType,
+          targetValue: rule.targetValue || null,
+          isActive: rule.isActive,
+        },
+      }).catch((e) => {
+        console.warn("[DisciplineStore.createRule] PostgreSQL write error:", e);
+      });
+    }
+
     return rule;
   }
 
   static updateRule(id: string, updates: Partial<DisciplineRule>): DisciplineRule | null {
-    const rules = readRules();
-    const index = rules.findIndex((r) => r.id === id);
-    if (index === -1) return null;
+    const existing = inMemoryRules.get(id);
+    if (!existing) return null;
 
-    rules[index] = { ...rules[index], ...updates };
-    writeRules(rules);
-    return rules[index];
+    const updated: DisciplineRule = {
+      ...existing,
+      ...updates,
+    };
+    inMemoryRules.set(id, updated);
+
+    if (isPostgresDatabase()) {
+      prisma.disciplineRule.update({
+        where: { id },
+        data: {
+          title: updates.title,
+          description: updates.description,
+          ruleType: updates.ruleType,
+          targetValue: updates.targetValue,
+          isActive: updates.isActive,
+        },
+      }).catch((e) => {
+        console.warn("[DisciplineStore.updateRule] PostgreSQL update error:", e);
+      });
+    }
+
+    return updated;
   }
 
   static deleteRule(id: string): boolean {
-    const rules = readRules();
-    const filtered = rules.filter((r) => r.id !== id);
-    if (filtered.length === rules.length) return false;
-    writeRules(filtered);
+    const existed = inMemoryRules.delete(id);
+    if (!existed) return false;
+
+    if (isPostgresDatabase()) {
+      prisma.disciplineRule.delete({ where: { id } }).catch((e) => {
+        console.warn("[DisciplineStore.deleteRule] PostgreSQL delete error:", e);
+      });
+    }
+
     return true;
   }
 
   // Logs CRUD
   static getLogsByUserId(userId: string): DisciplineLog[] {
-    const logs = readLogs();
-    return logs.filter((l) => l.userId === userId);
+    return Array.from(inMemoryLogs.values()).filter((l) => l.userId === userId);
   }
 
   static getLogsByDate(userId: string, date: string): DisciplineLog[] {
-    const logs = readLogs();
-    return logs.filter((l) => l.userId === userId && l.logDate === date);
+    const formatted = date.split("T")[0];
+    return Array.from(inMemoryLogs.values()).filter(
+      (l) => l.userId === userId && l.logDate === formatted
+    );
   }
 
   static setLog(log: DisciplineLog): DisciplineLog {
-    const logs = readLogs();
-    const existingIndex = logs.findIndex(
-      (l) => l.userId === log.userId && l.ruleId === log.ruleId && l.logDate === log.logDate
-    );
+    const key = `${log.userId}_${log.ruleId}_${log.logDate}`;
+    inMemoryLogs.set(key, { ...log });
 
-    if (existingIndex !== -1) {
-      logs[existingIndex] = log;
-    } else {
-      logs.push(log);
+    if (isPostgresDatabase()) {
+      const logDateObj = new Date(log.logDate);
+      prisma.disciplineLog.upsert({
+        where: {
+          userId_ruleId_logDate: {
+            userId: log.userId,
+            ruleId: log.ruleId,
+            logDate: logDateObj,
+          },
+        },
+        create: {
+          id: `dlog_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          userId: log.userId,
+          ruleId: log.ruleId,
+          logDate: logDateObj,
+          isAdhered: log.isAdhered,
+          notes: log.notes || null,
+        },
+        update: {
+          isAdhered: log.isAdhered,
+          notes: log.notes || null,
+        },
+      }).catch((e) => {
+        console.warn("[DisciplineStore.setLog] PostgreSQL write error:", e);
+      });
     }
 
-    writeLogs(logs);
     return log;
   }
 
   static clear(): void {
-    writeRules([]);
-    writeLogs([]);
+    inMemoryRules.clear();
+    inMemoryLogs.clear();
   }
 }

@@ -1,77 +1,160 @@
-import fs from "fs";
-import path from "path";
 import { SupportTicket } from "@/types";
+import { prisma, isPostgresDatabase } from "../db/prisma";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const TICKETS_FILE = path.join(DATA_DIR, "tickets.json");
+const inMemoryTickets = new Map<string, SupportTicket>();
 
-function ensureFile() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  if (!fs.existsSync(TICKETS_FILE)) {
-    fs.writeFileSync(TICKETS_FILE, JSON.stringify([], null, 2), "utf-8");
-  }
-}
-
-function readTickets(): SupportTicket[] {
-  ensureFile();
+function mapDbTicketToSupportTicket(dbT: any): SupportTicket {
+  let parsedMessages = [];
   try {
-    const raw = fs.readFileSync(TICKETS_FILE, "utf-8");
-    return JSON.parse(raw) as SupportTicket[];
+    parsedMessages = JSON.parse(dbT.message);
+    if (!Array.isArray(parsedMessages)) {
+      parsedMessages = [
+        {
+          id: `msg_${dbT.id}`,
+          senderId: dbT.userId,
+          senderRole: "USER" as const,
+          senderName: "User",
+          message: dbT.message,
+          createdAt: dbT.createdAt.toISOString(),
+        },
+      ];
+    }
   } catch {
-    return [];
+    parsedMessages = [
+      {
+        id: `msg_${dbT.id}`,
+        senderId: dbT.userId,
+        senderRole: "USER" as const,
+        senderName: "User",
+        message: dbT.message,
+        createdAt: dbT.createdAt.toISOString(),
+      },
+    ];
   }
-}
 
-function writeTickets(tickets: SupportTicket[]) {
-  ensureFile();
-  fs.writeFileSync(TICKETS_FILE, JSON.stringify(tickets, null, 2), "utf-8");
+  return {
+    id: dbT.id,
+    userId: dbT.userId,
+    userEmail: dbT.user?.email || "",
+    userName: dbT.user?.name || "",
+    category: dbT.category as any,
+    priority: dbT.priority as any,
+    status: dbT.status as any,
+    subject: dbT.subject,
+    messages: parsedMessages,
+    assignedAdminId: undefined,
+    createdAt: dbT.createdAt instanceof Date ? dbT.createdAt.toISOString() : String(dbT.createdAt),
+    updatedAt: dbT.updatedAt instanceof Date ? dbT.updatedAt.toISOString() : String(dbT.updatedAt),
+  };
 }
 
 export class TicketStore {
   static getTickets(): SupportTicket[] {
-    return readTickets().sort(
+    if (isPostgresDatabase()) {
+      prisma.supportTicket.findMany({ orderBy: { updatedAt: "desc" }, include: { user: true } })
+        .then((tickets) => {
+          for (const t of tickets) inMemoryTickets.set(t.id, mapDbTicketToSupportTicket(t));
+        })
+        .catch(() => {});
+    }
+    return Array.from(inMemoryTickets.values()).sort(
       (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     );
   }
 
+  static async getTicketsAsync(): Promise<SupportTicket[]> {
+    if (isPostgresDatabase()) {
+      try {
+        const tickets = await prisma.supportTicket.findMany({
+          orderBy: { updatedAt: "desc" },
+          include: { user: true },
+        });
+        const mapped = tickets.map(mapDbTicketToSupportTicket);
+        for (const t of mapped) inMemoryTickets.set(t.id, t);
+        return mapped;
+      } catch (e) {
+        console.warn("[TicketStore.getTicketsAsync] PostgreSQL fallback to memory:", e);
+      }
+    }
+    return this.getTickets();
+  }
+
   static getTicketsByUserId(userId: string): SupportTicket[] {
-    return readTickets()
+    if (isPostgresDatabase()) {
+      prisma.supportTicket.findMany({
+        where: { userId },
+        orderBy: { updatedAt: "desc" },
+        include: { user: true },
+      })
+        .then((tickets) => {
+          for (const t of tickets) inMemoryTickets.set(t.id, mapDbTicketToSupportTicket(t));
+        })
+        .catch(() => {});
+    }
+    return Array.from(inMemoryTickets.values())
       .filter((t) => t.userId === userId)
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }
 
   static getTicketById(ticketId: string): SupportTicket | null {
-    const tickets = readTickets();
-    return tickets.find((t) => t.id === ticketId) || null;
+    if (isPostgresDatabase()) {
+      prisma.supportTicket.findUnique({ where: { id: ticketId }, include: { user: true } })
+        .then((t) => {
+          if (t) inMemoryTickets.set(t.id, mapDbTicketToSupportTicket(t));
+        })
+        .catch(() => {});
+    }
+    return inMemoryTickets.get(ticketId) || null;
   }
 
   static upsertTicket(ticket: SupportTicket): SupportTicket {
-    const tickets = readTickets();
-    const index = tickets.findIndex((t) => t.id === ticket.id);
+    inMemoryTickets.set(ticket.id, { ...ticket });
 
-    if (index !== -1) {
-      tickets[index] = ticket;
-    } else {
-      tickets.push(ticket);
+    if (isPostgresDatabase()) {
+      const serializedMessage = JSON.stringify(ticket.messages || []);
+      prisma.supportTicket.upsert({
+        where: { id: ticket.id },
+        create: {
+          id: ticket.id,
+          userId: ticket.userId,
+          category: ticket.category,
+          subject: ticket.subject,
+          message: serializedMessage,
+          status: ticket.status as any,
+          priority: ticket.priority,
+          createdAt: new Date(ticket.createdAt),
+          updatedAt: new Date(ticket.updatedAt),
+        },
+        update: {
+          category: ticket.category,
+          subject: ticket.subject,
+          message: serializedMessage,
+          status: ticket.status as any,
+          priority: ticket.priority,
+          updatedAt: new Date(ticket.updatedAt),
+        },
+      }).catch((e) => {
+        console.warn("[TicketStore.upsertTicket] PostgreSQL write error:", e);
+      });
     }
 
-    writeTickets(tickets);
     return ticket;
   }
 
   static deleteTicket(ticketId: string): boolean {
-    const tickets = readTickets();
-    const filtered = tickets.filter((t) => t.id !== ticketId);
-    if (filtered.length !== tickets.length) {
-      writeTickets(filtered);
-      return true;
+    const existed = inMemoryTickets.delete(ticketId);
+    if (!existed) return false;
+
+    if (isPostgresDatabase()) {
+      prisma.supportTicket.delete({ where: { id: ticketId } }).catch((e) => {
+        console.warn("[TicketStore.deleteTicket] PostgreSQL delete error:", e);
+      });
     }
-    return false;
+
+    return true;
   }
 
   static clear(): void {
-    writeTickets([]);
+    inMemoryTickets.clear();
   }
 }

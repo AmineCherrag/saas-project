@@ -68,6 +68,8 @@ enum SubscriptionStatus {
   PAST_DUE
   CANCELED
   INCOMPLETE
+  UNPAID
+  EXPIRED
 }
 
 enum TicketStatus {
@@ -95,18 +97,39 @@ model User {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
-  subscription    Subscription?
-  accounts        TradingAccount[]
-  playbooks       Playbook[]
-  trades          Trade[]
-  executions      Execution[]
-  journalEntries  JournalEntry[]
-  disciplineRules DisciplineRule[]
-  disciplineLogs  DisciplineLog[]
-  supportTickets  SupportTicket[]
-  auditLogs       AuditLog[]
+  subscription       Subscription?
+  sessions           Session[]
+  invoices           Invoice[]
+  accounts           TradingAccount[]
+  playbooks          Playbook[]
+  trades             Trade[]
+  executions         Execution[]
+  journalEntries     JournalEntry[]
+  disciplineRules    DisciplineRule[]
+  disciplineLogs     DisciplineLog[]
+  supportTickets     SupportTicket[]
+  auditLogs          AuditLog[]
+  importBatches      ImportBatch[]
+  importFingerprints ImportFingerprint[]
 
   @@map("users")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  sessionId String   @unique
+  userId    String
+  email     String
+  name      String
+  role      Role     @default(USER)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([userId])
+  @@map("sessions")
 }
 
 model SubscriptionPlan {
@@ -153,6 +176,22 @@ model Subscription {
   @@map("subscriptions")
 }
 
+model Invoice {
+  id        String   @id @default(uuid())
+  userId    String
+  amount    Decimal  @db.Decimal(10, 2)
+  currency  String   @default("USD")
+  status    String   @default("PAID")
+  planName  String
+  pdfUrl    String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("invoices")
+}
+
 model WebhookEvent {
   id           String    @id @default(uuid())
   eventId      String    @unique
@@ -183,6 +222,7 @@ model TradingAccount {
 
   user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   trades         Trade[]
+  importBatches  ImportBatch[]
 
   @@index([userId, status])
   @@map("trading_accounts")
@@ -396,4 +436,40 @@ model AuditLog {
 
   @@index([userId, createdAt(sort: Desc)])
   @@map("audit_logs")
+}
+
+model ImportBatch {
+  id             String         @id @default(uuid())
+  userId         String
+  accountId      String
+  brokerPreset   String
+  fileName       String
+  totalRows      Int
+  importedCount  Int
+  duplicateCount Int
+  failedCount    Int
+  tradeIds       String[]
+  status         String         @default("COMPLETED")
+  createdAt      DateTime       @default(now())
+
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account        TradingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([userId, accountId])
+  @@map("import_batches")
+}
+
+model ImportFingerprint {
+  id          String   @id @default(uuid())
+  fingerprint String
+  batchId     String
+  tradeId     String
+  userId      String
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fingerprint])
+  @@index([batchId])
+  @@map("import_fingerprints")
 }
