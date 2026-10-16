@@ -16,13 +16,39 @@ export interface AuditLogEntry {
   timestamp: string;
 }
 
+const DEFAULT_ADMIN_USER: StoredUser = {
+  id: "usr_admin_master",
+  email: "admin@tradepulse.io",
+  passwordHash: "$2a$12$xDd/FR4FsXFqJBVs4txeXu/9AYnmlq.TUjU4hfgeYH.oIJqNvaiHq", // Admin123!
+  name: "System Administrator",
+  role: "ADMIN",
+  baseCurrency: "USD",
+  timezone: "America/New_York",
+  emailVerified: true,
+  twoFactorEnabled: false,
+  isSuspended: false,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z",
+};
+
 // Ensure data directory exists
 function ensureDataFiles() {
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
   if (!fs.existsSync(USERS_FILE)) {
-    fs.writeFileSync(USERS_FILE, JSON.stringify([], null, 2), "utf-8");
+    fs.writeFileSync(USERS_FILE, JSON.stringify([DEFAULT_ADMIN_USER], null, 2), "utf-8");
+  } else {
+    try {
+      const raw = fs.readFileSync(USERS_FILE, "utf-8");
+      const users = JSON.parse(raw) as StoredUser[];
+      if (!users.some((u) => u.role === "ADMIN")) {
+        users.push(DEFAULT_ADMIN_USER);
+        fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), "utf-8");
+      }
+    } catch {
+      // ignore
+    }
   }
   if (!fs.existsSync(SESSIONS_FILE)) {
     fs.writeFileSync(SESSIONS_FILE, JSON.stringify([], null, 2), "utf-8");

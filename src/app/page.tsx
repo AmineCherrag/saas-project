@@ -156,7 +156,7 @@ export default function LandingPage() {
               Start Free 14-Day Pro Trial
             </Button>
           </Link>
-          <Link href="/dashboard">
+          <a href="/api/v1/auth/demo">
             <Button
               variant="outline"
               size="lg"
@@ -164,7 +164,7 @@ export default function LandingPage() {
             >
               Explore Live Platform Demo
             </Button>
-          </Link>
+          </a>
         </div>
 
         {/* Live Mockup Canvas */}
@@ -624,13 +624,16 @@ export default function LandingPage() {
       {/* Testimonials */}
       <section id="testimonials" className={styles.testimonialsSection}>
         <div className={styles.sectionHeader}>
-          <span className={styles.sectionTag}>Trader Verified</span>
-          <h2 className={styles.sectionTitle}>What Serious Traders Are Saying</h2>
+          <span className={styles.sectionTag}>Illustrative Scenarios</span>
+          <h2 className={styles.sectionTitle}>Example Trader Experiences & Case Studies</h2>
         </div>
 
         <div className={`${styles.testimonialsGrid} max-w-7xl mx-auto px-6`}>
           <div className={styles.testimonialCard}>
-            <div style={{ color: "#f59e0b", fontSize: "14px" }}>★★★★★</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+              <div style={{ color: "#f59e0b", fontSize: "14px" }}>★★★★★</div>
+              <Badge variant="neutral" size="sm">Example Persona</Badge>
+            </div>
             <p className={styles.testimonialQuote}>
               "TradePulse's Mistake Leakage ledger opened my eyes. I discovered that breaking my stop-loss
               rules cost me over $4,200 last month. Once I saw the exact dollar figure, my discipline snapped
@@ -639,14 +642,17 @@ export default function LandingPage() {
             <div className={styles.authorRow}>
               <div className={styles.authorAvatar}>SC</div>
               <div>
-                <div className={styles.authorName}>Sarah Chen</div>
-                <div className={styles.authorRole}>Funded Prop Trader (ES / NQ Futures)</div>
+                <div className={styles.authorName}>Sarah Chen (Example User)</div>
+                <div className={styles.authorRole}>Prop Trader Persona (ES / NQ Futures)</div>
               </div>
             </div>
           </div>
 
           <div className={styles.testimonialCard}>
-            <div style={{ color: "#f59e0b", fontSize: "14px" }}>★★★★★</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+              <div style={{ color: "#f59e0b", fontSize: "14px" }}>★★★★★</div>
+              <Badge variant="neutral" size="sm">Example Persona</Badge>
+            </div>
             <p className={styles.testimonialQuote}>
               "The automated CSV importer from Tradovate and ThinkorSwim is flawless. It matches scale-ins,
               computes weighted entry prices, and deducts contract commissions without breaking a sweat.
@@ -655,14 +661,17 @@ export default function LandingPage() {
             <div className={styles.authorRow}>
               <div className={styles.authorAvatar}>MA</div>
               <div>
-                <div className={styles.authorName}>Marcus Aurelius</div>
-                <div className={styles.authorRole}>Quantitative Equities Day Trader</div>
+                <div className={styles.authorName}>Marcus Aurelius (Example User)</div>
+                <div className={styles.authorRole}>Quantitative Equities Persona</div>
               </div>
             </div>
           </div>
 
           <div className={styles.testimonialCard}>
-            <div style={{ color: "#f59e0b", fontSize: "14px" }}>★★★★★</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+              <div style={{ color: "#f59e0b", fontSize: "14px" }}>★★★★★</div>
+              <Badge variant="neutral" size="sm">Example Persona</Badge>
+            </div>
             <p className={styles.testimonialQuote}>
               "The 7-dimensional analytics showed me that my London session breakout setup had an 82% win rate,
               while my NY afternoon trades were bleeding capital. By simply cutting my afternoon trades,
@@ -671,12 +680,15 @@ export default function LandingPage() {
             <div className={styles.authorRow}>
               <div className={styles.authorAvatar}>ER</div>
               <div>
-                <div className={styles.authorName}>Elena Rostova</div>
-                <div className={styles.authorRole}>Full-Time FX & Commodities Trader</div>
+                <div className={styles.authorName}>Elena Rostova (Example User)</div>
+                <div className={styles.authorRole}>FX & Commodities Persona</div>
               </div>
             </div>
           </div>
         </div>
+        <p style={{ textAlign: "center", color: "var(--color-text-muted)", fontSize: "12px", marginTop: "20px" }}>
+          * Note: The testimonials above are illustrative examples depicting simulated trader personas and product workflows.
+        </p>
       </section>
 
       {/* FAQ Accordion */}
@@ -768,22 +780,39 @@ export default function LandingPage() {
 
           <div>
             <h5 style={{ fontSize: "13px", fontWeight: 700, marginBottom: "12px", color: "var(--color-text-primary)" }}>
-              Compliance & Security
+              Legal & Policies
+            </h5>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "13px" }}>
+              <Link href="/terms" className={styles.navLink}>Terms of Service</Link>
+              <Link href="/privacy" className={styles.navLink}>Privacy Policy</Link>
+              <Link href="/refund-policy" className={styles.navLink}>Refund Policy</Link>
+            </div>
+          </div>
+
+          <div>
+            <h5 style={{ fontSize: "13px", fontWeight: 700, marginBottom: "12px", color: "var(--color-text-primary)" }}>
+              Security & Privacy
             </h5>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "13px", color: "var(--color-text-muted)" }}>
-              <div>256-bit SSL Encryption</div>
-              <div>Stripe PCI-DSS Level 1</div>
+              <div>256-bit SSL / TLS Encryption</div>
               <div>Strict Multi-Tenant Scoping</div>
-              <div>CFTC Rule 4.41 Compliant</div>
+              <div>Encrypted Data Storage</div>
+              <div>Automated Daily Backups</div>
             </div>
           </div>
         </div>
 
-        <div className={styles.footerBottom}>
-          <div>© 2026 TradePulse Technologies Inc. All rights reserved.</div>
-          <div style={{ maxWidth: "600px", textAlign: "right" }}>
-            CFTC Rule 4.41: Hypothetical or simulated performance results have certain limitations.
-            Trading futures, options, and equities involves substantial risk of loss.
+        <div className={styles.footerBottom} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", width: "100%" }}>
+            <div>© 2026 TradePulse Technologies Inc. All rights reserved.</div>
+            <div style={{ display: "flex", gap: "16px", fontSize: "12px" }}>
+              <Link href="/terms" className={styles.navLink}>Terms</Link>
+              <Link href="/privacy" className={styles.navLink}>Privacy</Link>
+              <Link href="/refund-policy" className={styles.navLink}>Refunds</Link>
+            </div>
+          </div>
+          <div style={{ fontSize: "11px", color: "var(--color-text-muted)", lineHeight: 1.6, textAlign: "left", width: "100%", borderTop: "1px solid var(--border-subtle)", paddingTop: "12px" }}>
+            <strong style={{ color: "var(--color-text-secondary)" }}>Not Financial Advice:</strong> TradePulse is a quantitative trading journal and analytical software platform designed solely for educational, informational, and trade recording purposes. TradePulse is not a registered investment adviser, broker-dealer, or commodity trading advisor (CTA). Nothing on this platform constitutes financial, investment, legal, tax, or trading advice. Trading in equities, options, futures, forex, and cryptocurrency products involves substantial risk of loss and is not appropriate for all investors. CFTC Rule 4.41: Hypothetical or simulated performance results have certain inherent limitations. Past performance is not indicative of future returns.
           </div>
         </div>
       </footer>

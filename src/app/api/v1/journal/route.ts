@@ -14,9 +14,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to load journal entries";
+    const status = message.includes("Unauthorized") ? 401 : 400;
     return NextResponse.json(
       { success: false, data: null, error: { message } },
-      { status: 400 }
+      { status }
     );
   }
 }
@@ -42,9 +43,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to save journal entry";
+    const status = message.includes("Unauthorized") ? 401 : 400;
     return NextResponse.json(
       { success: false, data: null, error: { message } },
-      { status: 400 }
+      { status }
     );
   }
 }

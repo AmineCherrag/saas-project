@@ -41,146 +41,19 @@ import { AuditLogEntry } from "@/lib/auth/user-store";
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<"overview" | "users" | "tickets" | "audit">("overview");
   const [stats, setStats] = useState<AdminStats>({
-    mrr: 1980.0,
-    totalSubscribers: 42,
-    activeSubscribers: 36,
-    trialingSubscribers: 6,
-    churnRate: 2.4,
-    totalTradesLogged: 12450,
-    totalAccountsConnected: 89,
-    openTicketsCount: 3,
+    mrr: 0,
+    totalSubscribers: 0,
+    activeSubscribers: 0,
+    trialingSubscribers: 0,
+    churnRate: 0,
+    totalTradesLogged: 0,
+    totalAccountsConnected: 0,
+    openTicketsCount: 0,
   });
-  const [users, setUsers] = useState<AdminUserView[]>([
-    {
-      id: "usr_alex",
-      email: "alex.mercer@tradepulse.io",
-      name: "Alex Mercer",
-      role: "ADMIN",
-      status: "ACTIVE",
-      planSlug: "elite",
-      planName: "Elite Institutional",
-      billingInterval: "yearly",
-      accountCount: 3,
-      tradeCount: 142,
-      createdAt: "2026-08-15T10:00:00Z",
-    },
-    {
-      id: "usr_sarah",
-      email: "sarah.quant@hedgecap.com",
-      name: "Sarah Chen",
-      role: "USER",
-      status: "ACTIVE",
-      planSlug: "pro",
-      planName: "Pro Trader",
-      billingInterval: "monthly",
-      accountCount: 4,
-      tradeCount: 380,
-      createdAt: "2026-09-01T14:30:00Z",
-    },
-    {
-      id: "usr_marcus",
-      email: "marcus.daytrade@gmail.com",
-      name: "Marcus Aurelius",
-      role: "USER",
-      status: "TRIALING",
-      planSlug: "pro",
-      planName: "Pro Trader",
-      billingInterval: "monthly",
-      accountCount: 1,
-      tradeCount: 24,
-      createdAt: "2026-10-02T08:15:00Z",
-    },
-    {
-      id: "usr_elena",
-      email: "elena.forex@capital.net",
-      name: "Elena Rostova",
-      role: "USER",
-      status: "ACTIVE",
-      planSlug: "starter",
-      planName: "Starter Trader",
-      billingInterval: "monthly",
-      accountCount: 2,
-      tradeCount: 95,
-      createdAt: "2026-09-18T16:45:00Z",
-    },
-  ]);
-  const [tickets, setTickets] = useState<SupportTicket[]>([
-    {
-      id: "tkt_101",
-      userId: "usr_sarah",
-      userEmail: "sarah.quant@hedgecap.com",
-      userName: "Sarah Chen",
-      category: "BROKER_IMPORT",
-      priority: "HIGH",
-      status: "OPEN",
-      subject: "Interactive Brokers CSV timestamp offset in Asian session",
-      messages: [
-        {
-          id: "msg_1",
-          senderId: "usr_sarah",
-          senderRole: "USER",
-          senderName: "Sarah Chen",
-          message:
-            "Hi TradePulse Team, when importing trades executed around 00:30 UTC from IBKR, the date is showing up as the previous trading day in the Calendar. Can you advise?",
-          createdAt: "2026-10-12T19:30:00Z",
-        },
-      ],
-      createdAt: "2026-10-12T19:30:00Z",
-      updatedAt: "2026-10-12T19:30:00Z",
-    },
-    {
-      id: "tkt_102",
-      userId: "usr_marcus",
-      userEmail: "marcus.daytrade@gmail.com",
-      userName: "Marcus Aurelius",
-      category: "BILLING",
-      priority: "MEDIUM",
-      status: "IN_PROGRESS",
-      subject: "Upgrading trial to Elite Annual plan discount",
-      messages: [
-        {
-          id: "msg_2",
-          senderId: "usr_marcus",
-          senderRole: "USER",
-          senderName: "Marcus Aurelius",
-          message:
-            "I'm loving the AI Mentor and wanted to confirm if the 20% annual discount can be locked in before my 14-day trial concludes.",
-          createdAt: "2026-10-11T14:10:00Z",
-        },
-        {
-          id: "msg_3",
-          senderId: "usr_alex",
-          senderRole: "ADMIN",
-          senderName: "Alex Mercer (Support Lead)",
-          message:
-            "Hey Marcus! Absolutely. When you switch to Annual Billed in your Billing tab, the 20% discount is applied immediately and your card will only be charged when the trial ends.",
-          createdAt: "2026-10-11T15:02:00Z",
-        },
-      ],
-      createdAt: "2026-10-11T14:10:00Z",
-      updatedAt: "2026-10-11T15:02:00Z",
-    },
-  ]);
-  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([
-    {
-      id: "audit_1",
-      userId: "usr_alex",
-      action: "ADMIN_TIER_OVERRIDE",
-      details: { planSlug: "elite" },
-      ipAddress: "127.0.0.1",
-      timestamp: "2026-10-12T21:40:00Z",
-    },
-    {
-      id: "audit_2",
-      userId: "usr_sarah",
-      action: "USER_LOGIN_SUCCESS",
-      details: { method: "PASSWORD" },
-      ipAddress: "192.168.1.45",
-      timestamp: "2026-10-12T18:15:00Z",
-    },
-  ]);
-
-  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(tickets[0]);
+  const [users, setUsers] = useState<AdminUserView[]>([]);
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [replyText, setReplyText] = useState("");
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
 
@@ -254,48 +127,10 @@ export default function AdminPage() {
         );
         setReplyText("");
       } else {
-        // Local simulation fallback
-        const newMsg = {
-          id: `msg_${Date.now()}`,
-          senderId: "usr_admin",
-          senderRole: "ADMIN" as UserRole,
-          senderName: "Admin Support Specialist",
-          message: replyText.trim(),
-          createdAt: new Date().toISOString(),
-        };
-        const updated = {
-          ...selectedTicket,
-          status: "IN_PROGRESS" as TicketStatus,
-          messages: [...selectedTicket.messages, newMsg],
-          updatedAt: new Date().toISOString(),
-        };
-        setSelectedTicket(updated);
-        setTickets((prev) =>
-          prev.map((t) => (t.id === updated.id ? updated : t))
-        );
-        setReplyText("");
+        alert(data.error?.message || "Failed to submit reply");
       }
     } catch {
-      // Offline fallback
-      const newMsg = {
-        id: `msg_${Date.now()}`,
-        senderId: "usr_admin",
-        senderRole: "ADMIN" as UserRole,
-        senderName: "Admin Support Specialist",
-        message: replyText.trim(),
-        createdAt: new Date().toISOString(),
-      };
-      const updated = {
-        ...selectedTicket,
-        status: "IN_PROGRESS" as TicketStatus,
-        messages: [...selectedTicket.messages, newMsg],
-        updatedAt: new Date().toISOString(),
-      };
-      setSelectedTicket(updated);
-      setTickets((prev) =>
-        prev.map((t) => (t.id === updated.id ? updated : t))
-      );
-      setReplyText("");
+      alert("Network error: Failed to submit reply.");
     } finally {
       setIsSubmittingReply(false);
     }

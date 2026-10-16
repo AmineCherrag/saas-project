@@ -14,9 +14,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to load playbooks";
+    const status = message.includes("Unauthorized") ? 401 : 400;
     return NextResponse.json(
       { success: false, data: null, error: { message } },
-      { status: 400 }
+      { status }
     );
   }
 }
@@ -38,9 +39,10 @@ export async function POST(request: NextRequest) {
     );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to create playbook";
+    const status = message.includes("Unauthorized") ? 401 : 400;
     return NextResponse.json(
       { success: false, data: null, error: { message } },
-      { status: 400 }
+      { status }
     );
   }
 }

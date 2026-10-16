@@ -25,66 +25,28 @@ import {
 import { TradingAccount, AccountType, AssetClass, AccountStatus } from "@/types";
 
 export default function AccountsPage() {
-  const [accounts, setAccounts] = useState<TradingAccount[]>([
-    {
-      id: "acc_101",
-      userId: "usr_alex",
-      name: "Apex 50k Evaluation #1",
-      brokerName: "Tradovate",
-      accountType: "PROP_EVALUATION",
-      assetClass: "FUTURES",
-      initialBalance: 50000.0,
-      currentBalance: 52450.5,
-      currency: "USD",
-      status: "ACTIVE",
-      description: "Passing phase for prop firm funded status",
-      createdAt: "2026-09-01",
-    },
-    {
-      id: "acc_102",
-      userId: "usr_alex",
-      name: "Interactive Brokers Live",
-      brokerName: "Interactive Brokers",
-      accountType: "MARGIN",
-      assetClass: "STOCKS",
-      initialBalance: 25000.0,
-      currentBalance: 28420.0,
-      currency: "USD",
-      status: "ACTIVE",
-      description: "Primary equities swing and day trading portfolio",
-      createdAt: "2026-08-15",
-    },
-    {
-      id: "acc_103",
-      userId: "usr_alex",
-      name: "Binance Futures Sub-account",
-      brokerName: "Binance",
-      accountType: "CASH",
-      assetClass: "CRYPTO",
-      initialBalance: 10000.0,
-      currentBalance: 9850.0,
-      currency: "USD",
-      status: "ACTIVE",
-      description: "BTC and ETH perpetual trading",
-      createdAt: "2026-09-20",
-    },
-    {
-      id: "acc_104",
-      userId: "usr_alex",
-      name: "TopStep 150k Combine (Archived)",
-      brokerName: "NinjaTrader",
-      accountType: "PROP_EVALUATION",
-      assetClass: "FUTURES",
-      initialBalance: 150000.0,
-      currentBalance: 154200.0,
-      currency: "USD",
-      status: "ARCHIVED",
-      description: "Passed evaluation and transitioned to funded",
-      createdAt: "2026-06-10",
-    },
-  ]);
-
+  const [accounts, setAccounts] = useState<TradingAccount[]>([]);
   const [filterStatus, setFilterStatus] = useState<"ALL" | "ACTIVE" | "ARCHIVED">("ALL");
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    fetchAccounts();
+  }, []);
+
+  const fetchAccounts = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/v1/accounts");
+      const json = await res.json();
+      if (json.success && json.data) {
+        setAccounts(json.data);
+      }
+    } catch {
+      // Ignore
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -149,65 +111,97 @@ export default function AccountsPage() {
     setIsModalOpen(true);
   };
 
-  const handleSaveAccount = (e: React.FormEvent) => {
+  const handleSaveAccount = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const balanceNum = parseFloat(initialBalance) || 0;
 
     if (editingAccount) {
       // Update
-      setAccounts((prev) =>
-        prev.map((acc) =>
-          acc.id === editingAccount.id
-            ? {
-                ...acc,
-                name,
-                brokerName,
-                accountType,
-                assetClass,
-                currency,
-                description,
-              }
-            : acc
-        )
-      );
+      try {
+        const res = await fetch(`/api/v1/accounts/${editingAccount.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            brokerName,
+            accountType,
+            assetClass,
+            currency,
+            description,
+          }),
+        });
+        const json = await res.json();
+        if (json.success) {
+          fetchAccounts();
+        } else {
+          alert(json.error?.message || "Failed to update account");
+        }
+      } catch {
+        alert("Failed to update account");
+      }
     } else {
       // Create new
-      const balanceNum = parseFloat(initialBalance) || 0;
-      const newAcc: TradingAccount = {
-        id: `acc_${Date.now()}`,
-        userId: "usr_alex",
-        name,
-        brokerName,
-        accountType,
-        assetClass,
-        initialBalance: balanceNum,
-        currentBalance: balanceNum,
-        currency,
-        status: "ACTIVE",
-        description,
-        createdAt: new Date().toISOString().split("T")[0],
-      };
-      setAccounts((prev) => [newAcc, ...prev]);
+      try {
+        const res = await fetch("/api/v1/accounts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            brokerName,
+            accountType,
+            assetClass,
+            initialBalance: balanceNum,
+            currency,
+            description,
+          }),
+        });
+        const json = await res.json();
+        if (json.success) {
+          fetchAccounts();
+        } else {
+          alert(json.error?.message || "Failed to create account");
+        }
+      } catch {
+        alert("Failed to create account");
+      }
     }
 
     setIsModalOpen(false);
   };
 
-  const handleToggleArchive = (id: string) => {
-    setAccounts((prev) =>
-      prev.map((acc) =>
-        acc.id === id
-          ? {
-              ...acc,
-              status: acc.status === "ACTIVE" ? "ARCHIVED" : "ACTIVE",
-            }
-          : acc
-      )
-    );
+  const handleToggleArchive = async (id: string) => {
+    const acc = accounts.find((a) => a.id === id);
+    if (!acc) return;
+    const nextStatus = acc.status === "ACTIVE" ? "ARCHIVED" : "ACTIVE";
+    try {
+      const res = await fetch(`/api/v1/accounts/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        fetchAccounts();
+      }
+    } catch {
+      // Ignore
+    }
   };
 
-  const handleDeleteAccount = (id: string) => {
+  const handleDeleteAccount = async (id: string) => {
     if (confirm("Are you sure you want to delete this trading account?")) {
-      setAccounts((prev) => prev.filter((acc) => acc.id !== id));
+      try {
+        const res = await fetch(`/api/v1/accounts/${id}`, { method: "DELETE" });
+        const json = await res.json();
+        if (json.success) {
+          setAccounts((prev) => prev.filter((acc) => acc.id !== id));
+        } else {
+          alert(json.error?.message || "Failed to delete account");
+        }
+      } catch {
+        alert("Failed to delete account");
+      }
     }
   };
 

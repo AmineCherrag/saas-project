@@ -18,9 +18,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to load discipline logs";
+    const status = message.includes("Unauthorized") ? 401 : 400;
     return NextResponse.json(
       { success: false, data: null, error: { message } },
-      { status: 400 }
+      { status }
     );
   }
 }
@@ -39,9 +40,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to save discipline log";
+    const status = message.includes("Unauthorized") ? 401 : 400;
     return NextResponse.json(
       { success: false, data: null, error: { message } },
-      { status: 400 }
+      { status }
     );
   }
 }

@@ -107,7 +107,7 @@ export default function LoginPage() {
         <div className={styles.footer}>
           <span>Don&apos;t have an account yet?</span>{" "}
           <Link href="/register" className={styles.registerLink}>
-            Start 7-day free trial
+            Start 14-day free trial
           </Link>
         </div>
       </div>

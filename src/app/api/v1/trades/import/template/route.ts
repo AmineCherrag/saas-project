@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth/session-helper";
 import { ImportService } from "@/lib/importers/import-service";
 
 export async function GET(request: NextRequest) {
   try {
+    requireAuth(request);
     const { searchParams } = new URL(request.url);
     const broker = searchParams.get("broker") || "universal";
 
@@ -17,9 +19,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to generate CSV template";
+    const status = message.includes("Unauthorized") ? 401 : 400;
     return NextResponse.json(
       { success: false, data: null, error: { message } },
-      { status: 400 }
+      { status }
     );
   }
 }

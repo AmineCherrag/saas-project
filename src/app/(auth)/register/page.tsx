@@ -82,7 +82,7 @@ export default function RegisterPage() {
           </div>
           <h1 className={styles.title}>Create your TradePulse Account</h1>
           <p className={styles.subtitle}>
-            Start your 7-day Pro trial. No credit card required to start.
+            Start your 14-day Pro trial. No credit card required to start.
           </p>
         </div>
 
@@ -100,7 +100,7 @@ export default function RegisterPage() {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Alex Trader"
+            placeholder="Jane Doe"
             leftAddon={<User size={16} />}
             required
           />
@@ -110,7 +110,7 @@ export default function RegisterPage() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="alex.trader@example.com"
+            placeholder="jane.doe@example.com"
             leftAddon={<Mail size={16} />}
             required
           />

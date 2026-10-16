@@ -28,69 +28,74 @@ import { Trade } from "@/types";
 export default function TradeDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const tradeId = params.id as string;
+  const tradeId = params?.id as string;
 
-  // Mock trade detail for demonstration & verification
-  const [trade, setTrade] = useState<Trade>({
-    id: tradeId || "trd_01",
-    userId: "usr_alex",
-    accountId: "acc_101",
-    accountName: "Apex 50k #1 (Tradovate)",
-    symbol: "NQ (E-mini Nasdaq 100)",
-    assetClass: "FUTURES",
-    direction: "LONG",
-    status: "CLOSED",
-    entryTime: "2026-10-12 14:32:15",
-    exitTime: "2026-10-12 14:48:30",
-    entryPrice: 18250.25,
-    exitPrice: 18275.5,
-    quantity: 2,
-    contractMultiplier: 20.0,
-    stopLoss: 18230.0,
-    takeProfit: 18290.0,
-    initialRisk: 810.0, // (18250.25 - 18230.00) * 2 * 20 = $810.00
-    grossPnl: 1010.0, // (18275.50 - 18250.25) * 2 * 20 = $1,010.00
-    fees: 12.5,
-    commissions: 6.0,
-    netPnl: 991.5,
-    returnPct: 1.36,
-    rMultiple: 1.22,
-    rating: 5,
-    marketSession: "NY Open (09:30 - 11:30 AM)",
-    playbookName: "NY Open Breakout",
-    notes:
-      "Clean liquidity sweep of Asian session high during early NY open. Waited for 5-minute displacement candle to close above resistance before executing long. Trailed stop loss beneath previous 5m swing low until target hit.",
-    tags: [
-      { id: "t1", tradeId: "trd_01", tagType: "SETUP", tagValue: "Liquidity Sweep" },
-      { id: "t2", tradeId: "trd_01", tagType: "SETUP", tagValue: "5m Displacement" },
-      { id: "t3", tradeId: "trd_01", tagType: "CUSTOM", tagValue: "Followed Plan" },
-    ],
-    executions: [
-      {
-        id: "fill_01",
-        tradeId: "trd_01",
-        executionType: "ENTRY",
-        orderAction: "BUY",
-        timestamp: "2026-10-12 14:32:15",
-        price: 18250.25,
-        quantity: 2,
-        fees: 9.25,
-        notes: "Market order fill",
-      },
-      {
-        id: "fill_02",
-        tradeId: "trd_01",
-        executionType: "EXIT",
-        orderAction: "SELL",
-        timestamp: "2026-10-12 14:48:30",
-        price: 18275.5,
-        quantity: 2,
-        fees: 9.25,
-        notes: "Limit take-profit fill",
-      },
-    ],
-    createdAt: "2026-10-12",
-  });
+  const [trade, setTrade] = useState<Trade | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!tradeId) return;
+    setIsLoading(true);
+    fetch(`/api/v1/trades/${tradeId}`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.data) {
+          setTrade(json.data);
+        } else {
+          setError(json.error?.message || "Trade record not found or access denied.");
+        }
+      })
+      .catch(() => {
+        setError("Failed to load trade record.");
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [tradeId]);
+
+  const handleDelete = async () => {
+    if (confirm("Delete this trade?")) {
+      try {
+        const res = await fetch(`/api/v1/trades/${tradeId}`, { method: "DELETE" });
+        if (res.ok) {
+          router.push("/trades");
+        } else {
+          alert("Failed to delete trade.");
+        }
+      } catch {
+        alert("Failed to delete trade.");
+      }
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <AppShell>
+        <div style={{ padding: "40px", textAlign: "center", color: "var(--color-text-muted)" }}>
+          Loading trade details...
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (error || !trade) {
+    return (
+      <AppShell>
+        <div style={{ padding: "60px 20px", textAlign: "center", maxWidth: "480px", margin: "0 auto" }}>
+          <h2 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "12px", color: "var(--color-text-primary)" }}>
+            Trade Not Found
+          </h2>
+          <p style={{ color: "var(--color-text-muted)", marginBottom: "24px" }}>
+            {error || "The requested trade does not exist or you do not have permission to view it."}
+          </p>
+          <Button variant="primary" onClick={() => router.push("/trades")}>
+            Return to Trades Log
+          </Button>
+        </div>
+      </AppShell>
+    );
+  }
 
   const isProfitable = trade.netPnl >= 0;
 

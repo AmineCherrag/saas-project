@@ -6257,5 +6257,19 @@
     "isSuspended": false,
     "createdAt": "2026-10-13T02:42:37.794Z",
     "updatedAt": "2026-10-13T02:42:37.794Z"
+  },
+  {
+    "id": "usr_admin_master",
+    "email": "admin@tradepulse.io",
+    "passwordHash": "$2a$12$xDd/FR4FsXFqJBVs4txeXu/9AYnmlq.TUjU4hfgeYH.oIJqNvaiHq",
+    "name": "System Administrator",
+    "role": "ADMIN",
+    "baseCurrency": "USD",
+    "timezone": "America/New_York",
+    "emailVerified": true,
+    "twoFactorEnabled": false,
+    "isSuspended": false,
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
   }
 ]

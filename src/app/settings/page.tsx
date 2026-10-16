@@ -23,8 +23,8 @@ import {
 } from "lucide-react";
 
 export default function SettingsPage() {
-  const [name, setName] = useState("Alex Trader");
-  const [email, setEmail] = useState("alex.trader@example.com");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [baseCurrency, setBaseCurrency] = useState("USD");
   const [timezone, setTimezone] = useState("America/New_York");
   const [language, setLanguage] = useState("en");
@@ -41,6 +41,22 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+
+  // Fetch real user profile on mount
+  useEffect(() => {
+    fetch("/api/v1/user/profile")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.data) {
+          setName(json.data.name || "");
+          setEmail(json.data.email || "");
+          if (json.data.baseCurrency) setBaseCurrency(json.data.baseCurrency);
+          if (json.data.timezone) setTimezone(json.data.timezone);
+          if (json.data.twoFactorEnabled !== undefined) setTwoFactorEnabled(json.data.twoFactorEnabled);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Delete modal
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);

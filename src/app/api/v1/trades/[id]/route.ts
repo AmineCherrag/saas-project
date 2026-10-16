@@ -20,9 +20,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Trade not found";
+    const status = message.includes("Unauthorized") ? 401 : 404;
     return NextResponse.json(
       { success: false, data: null, error: { message } },
-      { status: 404 }
+      { status }
     );
   }
 }
@@ -42,9 +43,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to update trade";
+    const status = message.includes("Unauthorized") ? 401 : 400;
     return NextResponse.json(
       { success: false, data: null, error: { message } },
-      { status: 400 }
+      { status }
     );
   }
 }
@@ -63,9 +65,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to delete trade";
+    const status = message.includes("Unauthorized") ? 401 : 400;
     return NextResponse.json(
       { success: false, data: null, error: { message } },
-      { status: 400 }
+      { status }
     );
   }
 }

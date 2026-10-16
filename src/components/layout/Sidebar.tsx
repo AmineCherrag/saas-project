@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import styles from "./Sidebar.module.css";
@@ -34,6 +34,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/v1/user/profile")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success && json.data?.role === "ADMIN") {
+          setIsAdmin(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const navItems = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -50,7 +62,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const bottomItems = [
     { label: "Billing & Plan", href: "/billing", icon: CreditCard },
     { label: "Settings", href: "/settings", icon: Settings },
-    { label: "Admin Panel", href: "/admin", icon: ShieldCheck },
+    ...(isAdmin ? [{ label: "Admin Panel", href: "/admin", icon: ShieldCheck }] : []),
   ];
 
   const handleLinkClick = () => {

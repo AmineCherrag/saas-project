@@ -38,11 +38,46 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
+  const [user, setUser] = useState<{
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+  } | null>(null);
+
+  const [accounts, setAccounts] = useState<Array<{ id: string; label: string }>>([
+    { id: "all", label: "All Accounts (Aggregated)" },
+  ]);
+
   // Sync theme with document attribute
   useEffect(() => {
     const savedTheme = (localStorage.getItem("theme") as "dark" | "light") || "dark";
     setTheme(savedTheme);
     document.documentElement.setAttribute("data-theme", savedTheme);
+
+    // Fetch user profile
+    fetch("/api/v1/user/profile")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success && json.data) {
+          setUser(json.data);
+        }
+      })
+      .catch(() => {});
+
+    // Fetch user accounts
+    fetch("/api/v1/accounts")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success && json.data) {
+          const list = json.data.map((acc: any) => ({
+            id: acc.id,
+            label: `${acc.name} (${acc.assetClass})`,
+          }));
+          setAccounts([{ id: "all", label: "All Accounts (Aggregated)" }, ...list]);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const toggleTheme = () => {
@@ -52,12 +87,31 @@ export const TopBar: React.FC<TopBarProps> = ({
     document.documentElement.setAttribute("data-theme", nextTheme);
   };
 
-  const accounts = [
-    { id: "all", label: "All Accounts (Aggregated)" },
-    { id: "acc_101", label: "Apex 50k Evaluation (Futures)" },
-    { id: "acc_102", label: "Interactive Brokers (Equities)" },
-    { id: "acc_103", label: "Binance Live (Crypto)" },
-  ];
+  const handleSignOut = async () => {
+    try {
+      await fetch("/api/v1/auth/logout", { method: "POST" });
+    } catch {
+      // ignore
+    } finally {
+      window.location.href = "/login";
+    }
+  };
+
+  const isDemoUser = user?.id === "usr_sample_demo" || user?.email === "demo@tradepulse.io";
+
+  const getInitials = (name?: string) => {
+    if (isDemoUser) return "DM";
+    if (!name) return "TP";
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  const roleLabel = isDemoUser
+    ? "Sample Account"
+    : user?.role === "ADMIN"
+    ? "Administrator"
+    : "Pro Member";
 
   const dateRanges = [
     { id: "today", label: "Today" },
@@ -158,11 +212,11 @@ export const TopBar: React.FC<TopBarProps> = ({
             aria-label="User profile menu"
           >
             <div className={styles.avatar}>
-              <span>AT</span>
+              <span>{getInitials(user?.name)}</span>
             </div>
             <div className={styles.profileInfo}>
-              <span className={styles.userName}>Alex Trader</span>
-              <span className={styles.userRole}>Pro Member</span>
+              <span className={styles.userName}>{user?.name || "Trader"}</span>
+              <span className={styles.userRole}>{roleLabel}</span>
             </div>
             <ChevronDown size={13} className={styles.chevronIcon} />
           </button>
@@ -174,8 +228,10 @@ export const TopBar: React.FC<TopBarProps> = ({
               onMouseLeave={() => setIsProfileMenuOpen(false)}
             >
               <div className={styles.dropdownHeader}>
-                <p className={styles.dropdownEmail}>alex.trader@example.com</p>
-                <span className={styles.tierPill}>Pro Plan (Annual)</span>
+                <p className={styles.dropdownEmail}>{user?.email || "trader@tradepulse.io"}</p>
+                <span className={styles.tierPill}>
+                  {isDemoUser ? "Sample Demo Sandbox" : user?.role === "ADMIN" ? "System Admin" : "Pro Plan"}
+                </span>
               </div>
               <div className={styles.dropdownDivider} />
               <a href="/settings" className={styles.dropdownItem}>
@@ -189,7 +245,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               <div className={styles.dropdownDivider} />
               <button
                 className={`${styles.dropdownItem} ${styles.logoutItem}`}
-                onClick={() => alert("Logged out successfully.")}
+                onClick={handleSignOut}
               >
                 <LogOut size={15} />
                 <span>Sign Out</span>

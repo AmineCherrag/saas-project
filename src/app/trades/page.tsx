@@ -24,145 +24,9 @@ import {
 import { Trade, TradingAccount } from "@/types";
 
 export default function TradesLogPage() {
-  const [trades, setTrades] = useState<Trade[]>([
-    {
-      id: "trd_01",
-      userId: "usr_alex",
-      accountId: "acc_101",
-      accountName: "Apex 50k #1",
-      symbol: "NQ",
-      assetClass: "FUTURES",
-      direction: "LONG",
-      status: "CLOSED",
-      entryTime: "2026-10-12 14:32",
-      exitTime: "2026-10-12 14:48",
-      entryPrice: 18250.25,
-      exitPrice: 18275.5,
-      quantity: 2,
-      contractMultiplier: 20,
-      initialRisk: 480,
-      grossPnl: 1010.0,
-      fees: 12.5,
-      commissions: 6.0,
-      netPnl: 991.5,
-      rMultiple: 2.06,
-      rating: 5,
-      marketSession: "NY Open",
-      playbookName: "NY Open Breakout",
-      tags: [{ id: "t1", tradeId: "trd_01", tagType: "SETUP", tagValue: "A+ Setup" }],
-      createdAt: "2026-10-12",
-    },
-    {
-      id: "trd_02",
-      userId: "usr_alex",
-      accountId: "acc_101",
-      accountName: "Apex 50k #1",
-      symbol: "ES",
-      assetClass: "FUTURES",
-      direction: "SHORT",
-      status: "CLOSED",
-      entryTime: "2026-10-12 10:15",
-      exitTime: "2026-10-12 10:45",
-      entryPrice: 5042.5,
-      exitPrice: 5034.0,
-      quantity: 2,
-      contractMultiplier: 50,
-      initialRisk: 400,
-      grossPnl: 850.0,
-      fees: 8.5,
-      commissions: 4.0,
-      netPnl: 837.5,
-      rMultiple: 2.09,
-      rating: 4,
-      marketSession: "NY AM",
-      playbookName: "Liquidity Sweep",
-      tags: [{ id: "t2", tradeId: "trd_02", tagType: "SETUP", tagValue: "Order Block" }],
-      createdAt: "2026-10-12",
-    },
-    {
-      id: "trd_03",
-      userId: "usr_alex",
-      accountId: "acc_102",
-      accountName: "IBKR Stocks",
-      symbol: "NVDA",
-      assetClass: "STOCKS",
-      direction: "LONG",
-      status: "CLOSED",
-      entryTime: "2026-10-11 15:20",
-      exitTime: "2026-10-11 15:55",
-      entryPrice: 132.5,
-      exitPrice: 130.8,
-      quantity: 200,
-      contractMultiplier: 1,
-      initialRisk: 340,
-      grossPnl: -340.0,
-      fees: 2.0,
-      commissions: 2.0,
-      netPnl: -344.0,
-      rMultiple: -1.01,
-      rating: 2,
-      marketSession: "NY PM",
-      playbookName: "VWAP Reversal",
-      tags: [{ id: "t3", tradeId: "trd_03", tagType: "MISTAKE", tagValue: "Chased Entry" }],
-      createdAt: "2026-10-11",
-    },
-    {
-      id: "trd_04",
-      userId: "usr_alex",
-      accountId: "acc_101",
-      accountName: "Apex 50k #1",
-      symbol: "NQ",
-      assetClass: "FUTURES",
-      direction: "SHORT",
-      status: "CLOSED",
-      entryTime: "2026-10-10 11:00",
-      exitTime: "2026-10-10 11:24",
-      entryPrice: 18190.0,
-      exitPrice: 18155.0,
-      quantity: 2,
-      contractMultiplier: 20,
-      initialRisk: 500,
-      grossPnl: 1400.0,
-      fees: 12.5,
-      commissions: 6.0,
-      netPnl: 1381.5,
-      rMultiple: 2.76,
-      rating: 5,
-      marketSession: "NY AM",
-      playbookName: "Gap Fill Setup",
-      tags: [{ id: "t4", tradeId: "trd_04", tagType: "SETUP", tagValue: "Key Level" }],
-      createdAt: "2026-10-10",
-    },
-  ]);
-
-  const [accounts, setAccounts] = useState<TradingAccount[]>([
-    {
-      id: "acc_101",
-      userId: "usr_alex",
-      name: "Apex 50k #1",
-      brokerName: "Tradovate",
-      accountType: "PROP_EVALUATION",
-      assetClass: "FUTURES",
-      initialBalance: 50000,
-      currentBalance: 52450.5,
-      currency: "USD",
-      status: "ACTIVE",
-      createdAt: "2026-09-01",
-    },
-    {
-      id: "acc_102",
-      userId: "usr_alex",
-      name: "IBKR Stocks",
-      brokerName: "Interactive Brokers",
-      accountType: "MARGIN",
-      assetClass: "STOCKS",
-      initialBalance: 25000,
-      currentBalance: 28420.0,
-      currency: "USD",
-      status: "ACTIVE",
-      createdAt: "2026-08-15",
-    },
-  ]);
+  const [trades, setTrades] = useState<Trade[]>([]);
+  const [accounts, setAccounts] = useState<TradingAccount[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -171,6 +35,38 @@ export default function TradesLogPage() {
 
   // Modal
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  useEffect(() => {
+    fetchTrades();
+    fetchAccounts();
+  }, []);
+
+  const fetchTrades = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/v1/trades?limit=100");
+      const json = await res.json();
+      if (json.success && json.data) {
+        setTrades(json.data);
+      }
+    } catch {
+      // Ignore
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchAccounts = async () => {
+    try {
+      const res = await fetch("/api/v1/accounts");
+      const json = await res.json();
+      if (json.success && json.data) {
+        setAccounts(json.data);
+      }
+    } catch {
+      // Ignore
+    }
+  };
 
   // Filtered trades
   const filteredTrades = trades.filter((t) => {
@@ -186,22 +82,29 @@ export default function TradesLogPage() {
     return true;
   });
 
-  const handleDuplicateTrade = (trade: Trade) => {
-    const duplicated: Trade = {
-      ...trade,
-      id: `trd_${Date.now()}`,
-      status: "OPEN",
-      entryTime: new Date().toISOString().slice(0, 16),
-      exitTime: undefined,
-      exitPrice: undefined,
-      notes: `Duplicated from ${trade.id}`,
-    };
-    setTrades([duplicated, ...trades]);
+  const handleDuplicateTrade = async (trade: Trade) => {
+    try {
+      const res = await fetch(`/api/v1/trades/${trade.id}/duplicate`, { method: "POST" });
+      const json = await res.json();
+      if (json.success) {
+        fetchTrades();
+      }
+    } catch {
+      // Ignore
+    }
   };
 
-  const handleDeleteTrade = (id: string) => {
+  const handleDeleteTrade = async (id: string) => {
     if (confirm("Delete this trade record?")) {
-      setTrades(trades.filter((t) => t.id !== id));
+      try {
+        const res = await fetch(`/api/v1/trades/${id}`, { method: "DELETE" });
+        const json = await res.json();
+        if (json.success) {
+          setTrades((prev) => prev.filter((t) => t.id !== id));
+        }
+      } catch {
+        // Ignore
+      }
     }
   };
 
