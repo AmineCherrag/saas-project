@@ -66,7 +66,26 @@ export class ImportService {
     });
 
     const headers = parsed.meta.fields ? parsed.meta.fields.filter((h) => h && h.trim().length > 0) : [];
-    const rows = parsed.data.filter((row) => Object.values(row).some((val) => val && String(val).trim() !== ""));
+    
+    // Sanitize cell values against CSV injection attacks
+    const rows = parsed.data
+      .filter((row) => Object.values(row).some((val) => val && String(val).trim() !== ""))
+      .map((row) => {
+        const sanitizedRow: Record<string, string> = {};
+        for (const [key, val] of Object.entries(row)) {
+          if (typeof val === "string") {
+            let str = val.trim().replace(/\0/g, "");
+            // If cell starts with dangerous formula character and is not a simple number, neutralize it
+            if (/^[=+@-]/.test(str) && !/^[-+]?\d+(\.\d+)?$/.test(str)) {
+              str = "'" + str;
+            }
+            sanitizedRow[key] = str;
+          } else {
+            sanitizedRow[key] = String(val ?? "");
+          }
+        }
+        return sanitizedRow;
+      });
 
     return { headers, rows };
   }

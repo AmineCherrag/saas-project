@@ -35,7 +35,21 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      if (file.size > 10 * 1024 * 1024) {
+        return NextResponse.json(
+          { success: false, data: null, error: { message: "Uploaded file exceeds maximum limit of 10MB." } },
+          { status: 413 }
+        );
+      }
+
       fileName = file.name;
+      if (!fileName.toLowerCase().endsWith(".csv") && !fileName.toLowerCase().endsWith(".txt")) {
+        return NextResponse.json(
+          { success: false, data: null, error: { message: "Invalid file format. Only .csv and .txt broker reports are accepted." } },
+          { status: 400 }
+        );
+      }
+
       csvContent = await file.text();
     } else {
       const body = await request.json();
@@ -58,6 +72,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, data: null, error: { message: "CSV content cannot be empty." } },
         { status: 400 }
+      );
+    }
+
+    if (csvContent.length > 10 * 1024 * 1024) {
+      return NextResponse.json(
+        { success: false, data: null, error: { message: "CSV content exceeds maximum limit of 10MB." } },
+        { status: 413 }
       );
     }
 

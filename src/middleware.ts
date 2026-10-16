@@ -5,21 +5,27 @@ export function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get("tradepulse_session");
   const token = sessionCookie?.value?.trim();
 
-  // Protected routes list
-  const isProtectedRoute =
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/accounts") ||
-    pathname.startsWith("/trades") ||
-    pathname.startsWith("/analytics") ||
-    pathname.startsWith("/calendar") ||
-    pathname.startsWith("/journal") ||
-    pathname.startsWith("/playbooks") ||
-    pathname.startsWith("/progress") ||
-    pathname.startsWith("/billing") ||
-    pathname.startsWith("/settings") ||
-    pathname.startsWith("/admin");
+  // Explicit list of all protected route prefixes
+  const protectedPrefixes = [
+    "/dashboard",
+    "/accounts",
+    "/trades",
+    "/analytics",
+    "/calendar",
+    "/journal",
+    "/playbooks",
+    "/progress",
+    "/discipline",
+    "/billing",
+    "/settings",
+    "/admin",
+  ];
 
-  if (isProtectedRoute) {
+  const isProtected = protectedPrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+
+  if (isProtected) {
     if (!token) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("redirect", pathname);
@@ -32,16 +38,29 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/dashboard",
     "/dashboard/:path*",
+    "/accounts",
     "/accounts/:path*",
+    "/trades",
     "/trades/:path*",
+    "/analytics",
     "/analytics/:path*",
+    "/calendar",
     "/calendar/:path*",
+    "/journal",
     "/journal/:path*",
+    "/playbooks",
     "/playbooks/:path*",
+    "/progress",
     "/progress/:path*",
+    "/discipline",
+    "/discipline/:path*",
+    "/billing",
     "/billing/:path*",
+    "/settings",
     "/settings/:path*",
+    "/admin",
     "/admin/:path*",
   ],
 };

@@ -28,6 +28,22 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = requireAuth(request);
+
+    // Non-admins must go through Stripe Checkout or verified webhooks
+    if (session.role !== "ADMIN") {
+      return NextResponse.json(
+        {
+          success: false,
+          data: null,
+          error: {
+            message:
+              "Direct subscription tier modifications are restricted to administrators. Please use Stripe Checkout to upgrade your subscription.",
+          },
+        },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
 
     const { planSlug, interval } = body;

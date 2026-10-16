@@ -34,7 +34,9 @@ export type SubscriptionStatus =
   | "TRIALING"
   | "PAST_DUE"
   | "CANCELED"
-  | "INCOMPLETE";
+  | "INCOMPLETE"
+  | "UNPAID"
+  | "EXPIRED";
 
 export interface UserProfile {
   id: string;

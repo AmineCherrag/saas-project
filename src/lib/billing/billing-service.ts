@@ -75,6 +75,17 @@ export class BillingService {
   static getUserSubscription(userId: string): UserSubscription {
     const existing = BillingStore.getSubscription(userId);
     if (existing) {
+      // Check if trial period has ended
+      if (existing.status === "TRIALING" && existing.currentPeriodEnd) {
+        if (new Date(existing.currentPeriodEnd).getTime() < Date.now()) {
+          const expired: UserSubscription = {
+            ...existing,
+            status: "EXPIRED",
+          };
+          BillingStore.upsertSubscription(expired);
+          return expired;
+        }
+      }
       return existing;
     }
 
@@ -260,6 +271,7 @@ export class BillingService {
           past_due: "PAST_DUE",
           canceled: "CANCELED",
           incomplete: "INCOMPLETE",
+          unpaid: "UNPAID",
         };
 
         const newStatus = statusMap[obj.status] || "ACTIVE";

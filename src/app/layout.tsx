@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import "@/styles/globals.css";
 
+const appUrl =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://saas-project-gamma-two.vercel.app");
+
 export const metadata: Metadata = {
+  metadataBase: new URL(appUrl),
   title: "TradePulse | Institutional-Grade Trading Journal & Quantitative Performance Analytics",
   description:
     "Master your edge and eliminate emotional leakage. TradePulse delivers 7-dimensional quantitative analytics, automated broker CSV ingestion (Tradovate, TOS, NT8, MT4/5, IBKR), strategy playbooks, and discipline habit tracking.",
@@ -21,7 +26,7 @@ export const metadata: Metadata = {
     title: "TradePulse — Institutional-Grade Trading Journal & Analytics SaaS",
     description:
       "Transform your trading discipline. Deep quant reports, automated multi-broker execution syncing, and emotional mistake cost ledgers.",
-    url: "https://tradepulse.io",
+    url: appUrl,
     siteName: "TradePulse",
     type: "website",
     locale: "en_US",
